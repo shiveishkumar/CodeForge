@@ -9,7 +9,9 @@ from database import (
     withdraw_money,
     transfer_money,
     update_product,
-    get_transactions
+    get_transactions,
+    add_product,
+    delete_product
 )
 
 app = Flask(__name__)
@@ -188,6 +190,59 @@ def transactions():
         transactions=transaction_list
     )
 
+@app.route("/inventory/add", methods=["GET", "POST"])
+def add_inventory_product():
+    if request.method == "POST":
+        try:
+            product_name = request.form["product_name"].strip()
+            quantity = int(request.form["quantity"])
+            price = Decimal(request.form["price"])
+
+            if not product_name:
+                raise ValueError("Product name cannot be empty.")
+
+            if quantity < 0:
+                raise ValueError("Quantity cannot be negative.")
+
+            if price < 0:
+                raise ValueError("Price cannot be negative.")
+
+            add_product(product_name, quantity, price)
+
+            flash("Product added successfully.", "success")
+            return redirect(url_for("inventory"))
+
+        except (ValueError, InvalidOperation) as e:
+            if isinstance(e, InvalidOperation):
+                flash("Please enter a valid price.", "error")
+            else:
+                flash(str(e), "error")
+
+            return redirect(url_for("add_inventory_product"))
+
+    return render_template("add_product.html")
+
+@app.route("/inventory/delete", methods=["GET", "POST"])
+def delete_inventory_product():
+    products = get_inventory()
+
+    if request.method == "POST":
+        try:
+            product_id = int(request.form["product_id"])
+
+            delete_product(product_id)
+
+            flash("Product deleted successfully.", "success")
+            return redirect(url_for("inventory"))
+
+        except ValueError as e:
+            flash(str(e), "error")
+            return redirect(url_for("delete_inventory_product"))
+
+    return render_template(
+        "delete_product.html",
+        products=products
+    )
 
 if __name__ == "__main__":
     app.run(debug=True)

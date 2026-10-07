@@ -296,6 +296,54 @@ def get_transactions():
     conn.close()
     return transactions
 
+def add_product(product_name, quantity, price):
+    conn = get_connection()
+
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO inventory
+                (product_name, quantity, price)
+                VALUES (%s, %s, %s);
+                """,
+                (product_name, quantity, price)
+            )
+
+        conn.commit()
+
+    except Exception:
+        conn.rollback()
+        raise
+
+    finally:
+        conn.close()
+
+def delete_product(product_id):
+    conn = get_connection()
+
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                DELETE FROM inventory
+                WHERE product_id = %s;
+                """,
+                (product_id,)
+            )
+
+            if cur.rowcount == 0:
+                raise ValueError("Product not found.")
+
+        conn.commit()
+
+    except Exception:
+        conn.rollback()
+        raise
+
+    finally:
+        conn.close()
+
 if __name__ == "__main__":
     try:
         accounts = get_accounts()
