@@ -1,4 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, flash
+from decimal import Decimal, InvalidOperation
+
 from database import (
     get_accounts,
     get_inventory,
@@ -8,11 +10,11 @@ from database import (
     transfer_money,
     update_product,
     get_transactions
-
 )
 
 app = Flask(__name__)
 app.secret_key = "codeforge-demo-key"
+
 
 @app.route("/")
 def home():
@@ -27,6 +29,7 @@ def home():
         transaction_count=transaction_count
     )
 
+
 @app.route("/accounts")
 def accounts():
     accounts = get_accounts()
@@ -36,18 +39,31 @@ def accounts():
         accounts=accounts
     )
 
+
 @app.route("/deposit", methods=["GET", "POST"])
 def deposit():
     accounts = get_accounts()
 
     if request.method == "POST":
-        account_id = int(request.form["account_id"])
-        amount = float(request.form["amount"])
+        try:
+            account_id = int(request.form["account_id"])
+            amount = Decimal(request.form["amount"])
 
-        if amount > 0:
+            if amount <= 0:
+                raise ValueError("Amount must be greater than zero.")
+
             deposit_money(account_id, amount)
 
-        return redirect(url_for("accounts"))
+            flash("Deposit completed successfully.", "success")
+            return redirect(url_for("accounts"))
+
+        except (ValueError, InvalidOperation) as e:
+            if isinstance(e, InvalidOperation):
+                flash("Please enter a valid amount.", "error")
+            else:
+                flash(str(e), "error")
+
+            return redirect(url_for("deposit"))
 
     return render_template(
         "deposit.html",
@@ -62,7 +78,7 @@ def withdraw():
     if request.method == "POST":
         try:
             account_id = int(request.form["account_id"])
-            amount = float(request.form["amount"])
+            amount = Decimal(request.form["amount"])
 
             if amount <= 0:
                 raise ValueError("Amount must be greater than zero.")
@@ -72,8 +88,12 @@ def withdraw():
             flash("Withdrawal completed successfully.", "success")
             return redirect(url_for("accounts"))
 
-        except ValueError as e:
-            flash(str(e), "error")
+        except (ValueError, InvalidOperation) as e:
+            if isinstance(e, InvalidOperation):
+                flash("Please enter a valid amount.", "error")
+            else:
+                flash(str(e), "error")
+
             return redirect(url_for("withdraw"))
 
     return render_template(
@@ -90,7 +110,7 @@ def transfer():
         try:
             from_account = int(request.form["from_account"])
             to_account = int(request.form["to_account"])
-            amount = float(request.form["amount"])
+            amount = Decimal(request.form["amount"])
 
             if amount <= 0:
                 raise ValueError("Amount must be greater than zero.")
@@ -100,14 +120,19 @@ def transfer():
             flash("Transfer completed successfully.", "success")
             return redirect(url_for("accounts"))
 
-        except ValueError as e:
-            flash(str(e), "error")
+        except (ValueError, InvalidOperation) as e:
+            if isinstance(e, InvalidOperation):
+                flash("Please enter a valid amount.", "error")
+            else:
+                flash(str(e), "error")
+
             return redirect(url_for("transfer"))
 
     return render_template(
         "transfer.html",
         accounts=accounts
     )
+
 
 @app.route("/inventory")
 def inventory():
@@ -118,19 +143,35 @@ def inventory():
         products=products
     )
 
+
 @app.route("/inventory/edit", methods=["GET", "POST"])
 def edit_product():
     products = get_inventory()
 
     if request.method == "POST":
-        product_id = int(request.form["product_id"])
-        quantity = int(request.form["quantity"])
-        price = float(request.form["price"])
+        try:
+            product_id = int(request.form["product_id"])
+            quantity = int(request.form["quantity"])
+            price = Decimal(request.form["price"])
 
-        if quantity >= 0 and price >= 0:
+            if quantity < 0:
+                raise ValueError("Quantity cannot be negative.")
+
+            if price < 0:
+                raise ValueError("Price cannot be negative.")
+
             update_product(product_id, quantity, price)
 
-        return redirect(url_for("inventory"))
+            flash("Product updated successfully.", "success")
+            return redirect(url_for("inventory"))
+
+        except (ValueError, InvalidOperation) as e:
+            if isinstance(e, InvalidOperation):
+                flash("Please enter a valid price.", "error")
+            else:
+                flash(str(e), "error")
+
+            return redirect(url_for("edit_product"))
 
     return render_template(
         "edit_product.html",
@@ -146,6 +187,7 @@ def transactions():
         "transactions.html",
         transactions=transaction_list
     )
+
 
 if __name__ == "__main__":
     app.run(debug=True)
