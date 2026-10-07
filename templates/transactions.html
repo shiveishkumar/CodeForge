@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>CodeForge | Transactions</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+
+<nav class="navbar">
+    <div class="logo">Code<span>Forge</span></div>
+    <div class="nav-status">Banking Transaction History</div>
+</nav>
+
+<main class="container">
+
+    <div class="heading">
+        <h1>Transaction History</h1>
+        <p>Legitimate banking transactions performed through CodeForge.</p>
+    </div>
+
+    <div class="page-actions">
+        <a href="/" class="back-button">← Dashboard</a>
+
+        <span class="record-count">
+            {{ transactions|length }} Transactions
+        </span>
+    </div>
+
+    <div class="table-container">
+
+        <table class="data-table">
+
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Type</th>
+                    <th>From</th>
+                    <th>To</th>
+                    <th>Amount</th>
+                    <th>Time</th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+                {% for t in transactions %}
+
+                <tr>
+                    <td>#{{ t[0] }}</td>
+
+                    <td>{{ t[1] }}</td>
+
+                    <td>
+                        {% if t[3] %}
+                            {{ t[3] }} (#{{ t[2] }})
+                        {% else %}
+                            —
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        {% if t[5] %}
+                            {{ t[5] }} (#{{ t[4] }})
+                        {% else %}
+                            —
+                        {% endif %}
+                    </td>
+
+                    <td>₹{{ t[6] }}</td>
+
+                    <td>{{ t[7] }}</td>
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</main>
+
+<footer class="footer">
+    CodeForge • Banking Transaction History
+</footer>
+
+</body>
+</html>

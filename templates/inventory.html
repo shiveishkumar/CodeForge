@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>CodeForge | Inventory</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+
+<nav class="navbar">
+    <div class="logo">Code<span>Forge</span></div>
+    <div class="nav-status">Inventory Module</div>
+</nav>
+
+<main class="container">
+
+    <div class="heading">
+        <h1>Inventory Management</h1>
+        <p>View product records stored in the PostgreSQL database.</p>
+    </div>
+
+    <div class="page-actions">
+
+        <a href="/inventory/edit" class="action-button">
+    ✎ Update Product
+</a>
+
+        <span class="record-count">
+            {{ products|length }} Products
+        </span>
+
+    </div>
+
+    <div class="table-container">
+
+        <table class="data-table">
+
+            <thead>
+                <tr>
+                    <th>Product ID</th>
+                    <th>Product Name</th>
+                    <th>Quantity</th>
+                    <th>Price</th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+                {% for product in products %}
+
+                <tr>
+                    <td>#{{ product[0] }}</td>
+                    <td>{{ product[1] }}</td>
+                    <td>{{ product[2] }}</td>
+                    <td>₹{{ product[3] }}</td>
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</main>
+
+<footer class="footer">
+    CodeForge • Inventory Module
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>CodeForge | Banking</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+
+<nav class="navbar">
+    <div class="logo">Code<span>Forge</span></div>
+
+    <div class="nav-status">
+        Banking Module
+    </div>
+</nav>
+
+
+<main class="container">
+
+    <div class="heading">
+        <h1>Bank Accounts</h1>
+        <p>View business account records stored in PostgreSQL.</p>
+    </div>
+
+
+    <div class="page-actions">
+
+    <a href="/" class="back-button">
+        ← Dashboard
+    </a>
+
+    <a href="/deposit" class="action-button">
+        + Deposit
+    </a>
+
+    <a href="/withdraw" class="action-button">
+    − Withdraw
+</a>
+    <a href="/transfer" class="action-button">
+    ⇄ Transfer
+</a>
+
+
+    <span class="record-count">
+        {{ accounts|length }} Accounts
+    </span>
+
+</div>
+
+
+    <div class="table-container">
+
+        <table class="data-table">
+
+            <thead>
+                <tr>
+                    <th>Account ID</th>
+                    <th>Account Holder</th>
+                    <th>Current Balance</th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+                {% for account in accounts %}
+
+                <tr>
+                    <td>#{{ account[0] }}</td>
+                    <td>{{ account[1] }}</td>
+                    <td>₹{{ account[2] }}</td>
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</main>
+
+
+<footer class="footer">
+    CodeForge • Banking Module
+</footer>
+
+</body>
+</html>

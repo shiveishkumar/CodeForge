@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>CodeForge | Security Dashboard</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+
+<nav class="navbar">
+    <div class="logo">
+        Code<span>Forge</span>
+    </div>
+
+    <div class="nav-status">
+        Tamper-Evident Database Auditing
+    </div>
+</nav>
+
+
+<main class="container">
+
+    <div class="heading">
+        <h1>Security Dashboard</h1>
+        <p>Monitor database activity and integrity from one place.</p>
+    </div>
+
+
+    <section class="integrity-card">
+
+        <p class="label">Database Connection</p>
+
+        <h2 class="integrity-status">
+            ● DATABASE CONNECTED
+        </h2>
+
+        <p class="integrity-note">
+            PostgreSQL business database is online.
+            Cryptographic integrity verification will be shown separately.
+        </p>
+
+    </section>
+
+
+    <h2 class="section-title">Database Overview</h2>
+
+    <section class="stats">
+
+        <div class="stat-card">
+            <p>Bank Accounts</p>
+            <h2>{{ account_count }}</h2>
+        </div>
+
+        <div class="stat-card">
+            <p>Inventory Products</p>
+            <h2>{{ product_count }}</h2>
+        </div>
+
+        <div class="stat-card">
+            <p>Transactions</p>
+            <h2>{{ transaction_count }}</h2>
+        </div>
+
+    </section>
+
+
+    <h2 class="section-title">CodeForge Modules</h2>
+
+    <section class="modules">
+
+        <a href="/accounts" class="module-card">
+    <h3>Banking</h3>
+    <p>
+        View accounts and perform legitimate banking operations.
+    </p>
+</a>
+
+        <a href="/inventory" class="module-card">
+    <h3>Inventory</h3>
+    <p>
+        View and update product inventory records.
+    </p>
+</a>
+
+        <div class="module-card">
+            <h3>Audit History</h3>
+            <p>
+                View authenticated database change history.
+            </p>
+        </div>
+
+        <div class="module-card verify">
+            <h3>Verify Integrity</h3>
+            <p>
+                Run cryptographic verification of authenticated records.
+            </p>
+        </div>
+
+        <a href="/transactions" class="module-card">
+    <h3>Transactions</h3>
+    <p>
+        View legitimate banking transaction history.
+    </p>
+</a>
+    </section>
+
+</main>
+
+
+<footer class="footer">
+    CodeForge • Tamper-Evident Query Auditing Layer
+</footer>
+
+</body>
+</html>
