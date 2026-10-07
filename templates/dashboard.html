@@ -30,20 +30,51 @@
     </div>
 
 
-    <section class="integrity-card">
+    <section class="integrity-card {% if integrity_result.valid %}verified-card{% else %}tampered-card{% endif %}">
 
-        <p class="label">Database Connection</p>
+    <p class="label">System Integrity</p>
 
-        <h2 class="integrity-status">
-            ● DATABASE CONNECTED
+    {% if integrity_result.valid %}
+
+        <h2 class="integrity-status verified">
+            ● VERIFIED
         </h2>
 
         <p class="integrity-note">
-            PostgreSQL business database is online.
-            Cryptographic integrity verification will be shown separately.
+            {{ integrity_result.message }}
         </p>
 
-    </section>
+    {% else %}
+
+        <h2 class="integrity-status tampered">
+            ⚠ TAMPERING DETECTED
+        </h2>
+
+        <p class="integrity-note">
+            {{ integrity_result.message }}
+        </p>
+
+        {% if integrity_result.type %}
+            <p class="integrity-note">
+                Type: {{ integrity_result.type }}
+            </p>
+        {% endif %}
+
+        {% if integrity_result.event_id %}
+            <p class="integrity-note">
+                Event ID: {{ integrity_result.event_id }}
+            </p>
+        {% endif %}
+
+        {% if integrity_result.batch_id %}
+            <p class="integrity-note">
+                Batch ID: {{ integrity_result.batch_id }}
+            </p>
+        {% endif %}
+
+    {% endif %}
+
+</section>
 
 
     <h2 class="section-title">Database Overview</h2>

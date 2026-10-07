@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, flash
 from decimal import Decimal, InvalidOperation
-
+from services import create_audit_event, verify_system_integrity
 from database import (
     get_accounts,
     get_inventory,
@@ -11,7 +11,9 @@ from database import (
     update_product,
     get_transactions,
     add_product,
-    delete_product
+    delete_product,
+    get_account_by_id,
+    get_product_by_id
 )
 
 app = Flask(__name__)
@@ -24,11 +26,14 @@ def home():
     products = get_inventory()
     transaction_count = get_transaction_count()
 
+    integrity_result = verify_system_integrity()
+
     return render_template(
         "dashboard.html",
         account_count=len(accounts),
         product_count=len(products),
-        transaction_count=transaction_count
+        transaction_count=transaction_count,
+        integrity_result=integrity_result
     )
 
 
@@ -54,7 +59,30 @@ def deposit():
             if amount <= 0:
                 raise ValueError("Amount must be greater than zero.")
 
+            old_account = get_account_by_id(account_id)
+
+            if old_account is None:
+                raise ValueError("Account not found.")
+
+            old_balance = old_account[2]
+
             deposit_money(account_id, amount)
+
+            new_account = get_account_by_id(account_id)
+            new_balance = new_account[2]
+
+            create_audit_event(
+                operation="UPDATE",
+                table_name="accounts",
+                record_key=account_id,
+                old_data={
+                    "balance": str(old_balance)
+                },
+                new_data={
+                    "balance": str(new_balance)
+                },
+                actor="demo_user"
+            )
 
             flash("Deposit completed successfully.", "success")
             return redirect(url_for("accounts"))
@@ -85,7 +113,30 @@ def withdraw():
             if amount <= 0:
                 raise ValueError("Amount must be greater than zero.")
 
+            old_account = get_account_by_id(account_id)
+
+            if old_account is None:
+                raise ValueError("Account not found.")
+
+            old_balance = old_account[2]
+
             withdraw_money(account_id, amount)
+
+            new_account = get_account_by_id(account_id)
+            new_balance = new_account[2]
+
+            create_audit_event(
+                operation="UPDATE",
+                table_name="accounts",
+                record_key=account_id,
+                old_data={
+                    "balance": str(old_balance)
+                },
+                new_data={
+                    "balance": str(new_balance)
+                },
+                actor="demo_user"
+            )
 
             flash("Withdrawal completed successfully.", "success")
             return redirect(url_for("accounts"))
@@ -117,14 +168,76 @@ def transfer():
             if amount <= 0:
                 raise ValueError("Amount must be greater than zero.")
 
-            transfer_money(from_account, to_account, amount)
+            if from_account == to_account:
+                raise ValueError(
+                    "Source and destination accounts cannot be the same."
+                )
 
-            flash("Transfer completed successfully.", "success")
+            old_sender = get_account_by_id(from_account)
+            old_receiver = get_account_by_id(to_account)
+
+            if old_sender is None:
+                raise ValueError("Sender account not found.")
+
+            if old_receiver is None:
+                raise ValueError("Receiver account not found.")
+
+            old_sender_balance = old_sender[2]
+            old_receiver_balance = old_receiver[2]
+
+            transfer_money(
+                from_account,
+                to_account,
+                amount
+            )
+
+            new_sender = get_account_by_id(from_account)
+            new_receiver = get_account_by_id(to_account)
+
+            new_sender_balance = new_sender[2]
+            new_receiver_balance = new_receiver[2]
+
+            # Audit sender balance change
+            create_audit_event(
+                operation="UPDATE",
+                table_name="accounts",
+                record_key=from_account,
+                old_data={
+                    "balance": str(old_sender_balance)
+                },
+                new_data={
+                    "balance": str(new_sender_balance)
+                },
+                actor="demo_user"
+            )
+
+            # Audit receiver balance change
+            create_audit_event(
+                operation="UPDATE",
+                table_name="accounts",
+                record_key=to_account,
+                old_data={
+                    "balance": str(old_receiver_balance)
+                },
+                new_data={
+                    "balance": str(new_receiver_balance)
+                },
+                actor="demo_user"
+            )
+
+            flash(
+                "Transfer completed successfully.",
+                "success"
+            )
+
             return redirect(url_for("accounts"))
 
         except (ValueError, InvalidOperation) as e:
             if isinstance(e, InvalidOperation):
-                flash("Please enter a valid amount.", "error")
+                flash(
+                    "Please enter a valid amount.",
+                    "error"
+                )
             else:
                 flash(str(e), "error")
 
@@ -162,7 +275,36 @@ def edit_product():
             if price < 0:
                 raise ValueError("Price cannot be negative.")
 
-            update_product(product_id, quantity, price)
+            old_product = get_product_by_id(product_id)
+
+            if old_product is None:
+                raise ValueError("Product not found.")
+
+            old_quantity = old_product[2]
+            old_price = old_product[3]
+
+            update_product(
+                product_id,
+                quantity,
+                price
+            )
+
+            new_product = get_product_by_id(product_id)
+
+            create_audit_event(
+                operation="UPDATE",
+                table_name="inventory",
+                record_key=product_id,
+                old_data={
+                    "quantity": old_quantity,
+                    "price": str(old_price)
+                },
+                new_data={
+                    "quantity": new_product[2],
+                    "price": str(new_product[3])
+                },
+                actor="demo_user"
+            )
 
             flash("Product updated successfully.", "success")
             return redirect(url_for("inventory"))
