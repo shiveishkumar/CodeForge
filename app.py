@@ -1,6 +1,11 @@
 from flask import Flask, render_template, request, redirect, url_for, flash
 from decimal import Decimal, InvalidOperation
-from services import create_audit_event, verify_system_integrity
+from datetime import datetime
+from services import (
+    create_audit_event,
+    verify_system_integrity,
+    get_integrity_breakdown
+)
 from database import (
     get_accounts,
     get_inventory,
@@ -13,7 +18,9 @@ from database import (
     add_product,
     delete_product,
     get_account_by_id,
-    get_product_by_id
+    get_product_by_id,
+    get_dashboard_security_data,
+    get_audit_history
 )
 
 app = Flask(__name__)
@@ -27,13 +34,29 @@ def home():
     transaction_count = get_transaction_count()
 
     integrity_result = verify_system_integrity()
+    integrity_breakdown = get_integrity_breakdown()
+
+    security_data = get_dashboard_security_data()
+
+    checked_at = datetime.now().strftime("%H:%M:%S")
 
     return render_template(
         "dashboard.html",
+
         account_count=len(accounts),
         product_count=len(products),
         transaction_count=transaction_count,
-        integrity_result=integrity_result
+
+        integrity_result=integrity_result,
+        integrity_breakdown=integrity_breakdown,
+        checked_at=checked_at,
+
+        audit_count=security_data["audit_count"],
+        batch_count=security_data["batch_count"],
+        latest_root=security_data["latest_root"],
+
+        activity_counts=security_data["activity_counts"],
+        recent_activity=security_data["recent_activity"]
     )
 
 
@@ -45,6 +68,7 @@ def accounts():
         "accounts.html",
         accounts=accounts
     )
+
 
 
 @app.route("/deposit", methods=["GET", "POST"])
@@ -384,6 +408,20 @@ def delete_inventory_product():
     return render_template(
         "delete_product.html",
         products=products
+    )
+
+@app.route("/verify-now", methods=["POST"])
+def verify_now():
+    return redirect(url_for("home"))
+
+@app.route("/audit-history")
+def audit_history():
+
+    events = get_audit_history()
+
+    return render_template(
+        "audit_history.html",
+        events=events
     )
 
 if __name__ == "__main__":

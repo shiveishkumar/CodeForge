@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        Audit History | CodeForge
+    </title>
+
+
+    <script>
+    const savedTheme =
+        localStorage.getItem("codeforge-theme") || "dark";
+
+    document.documentElement.setAttribute(
+        "data-theme",
+        savedTheme
+    );
+</script>
+<link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='css/style.css') }}"
+>
+
+<link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='css/dashboard.css') }}"
+>
+
+</head>
+
+
+<body class="dashboard-page">
+
+
+    <!-- NAVBAR -->
+
+    <nav class="dashboard-nav">
+
+        <div class="nav-left">
+
+            <a
+                href="{{ url_for('home') }}"
+                class="brand"
+            >
+
+                <div class="brand-mark">
+                    C
+                </div>
+
+                <div>
+
+                    <div class="brand-name">
+                        CodeForge
+                    </div>
+
+                    <div class="brand-subtitle">
+                        Tamper-Evident Audit Layer
+                    </div>
+
+                </div>
+
+            </a>
+
+        </div>
+
+
+        <div class="nav-right">
+
+            <a
+                href="{{ url_for('home') }}"
+                class="verify-button"
+            >
+                ← Dashboard
+            </a>
+
+        </div>
+
+    </nav>
+
+
+
+    <main class="dashboard-container">
+
+
+        <!-- HEADER -->
+
+        <section class="dashboard-heading">
+
+            <div>
+
+                <div class="eyebrow">
+                    CRYPTOGRAPHIC HISTORY
+                </div>
+
+                <h1>
+                    Audit History
+                </h1>
+
+                <p>
+                    Authenticated database changes recorded
+                    by the CodeForge auditing layer.
+                </p>
+
+            </div>
+
+        </section>
+
+
+
+        <!-- SUMMARY -->
+
+        <section class="metrics-grid audit-history-summary">
+
+            <div class="metric-card glass">
+
+                <div class="metric-label">
+                    Total Events
+                </div>
+
+                <div class="metric-number">
+                    {{ events|length }}
+                </div>
+
+                <div class="metric-description">
+                    Authenticated records
+                </div>
+
+            </div>
+
+
+            <div class="metric-card glass">
+
+                <div class="metric-label">
+                    Latest Event
+                </div>
+
+                <div class="metric-number">
+
+                    {% if events %}
+
+                        #{{ events[0].event_id }}
+
+                    {% else %}
+
+                        —
+
+                    {% endif %}
+
+                </div>
+
+                <div class="metric-description">
+                    Most recent audit entry
+                </div>
+
+            </div>
+
+
+            <div class="metric-card glass">
+
+                <div class="metric-label">
+                    Latest Batch
+                </div>
+
+                <div class="metric-number">
+
+                    {% if events and events[0].batch_id %}
+
+                        {{ events[0].batch_id }}
+
+                    {% else %}
+
+                        —
+
+                    {% endif %}
+
+                </div>
+
+                <div class="metric-description">
+                    Merkle batch assignment
+                </div>
+
+            </div>
+
+        </section>
+
+
+
+        <!-- AUDIT TABLE -->
+
+        <section class="recent-section glass">
+
+            <div class="recent-header">
+
+                <div>
+
+                    <div class="panel-title">
+                        Authenticated Events
+                    </div>
+
+                    <div class="panel-subtitle">
+                        Newest events appear first
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="recent-table-wrapper">
+
+                <table class="recent-table audit-history-table">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>
+                                Event
+                            </th>
+
+                            <th>
+                                Operation
+                            </th>
+
+                            <th>
+                                Table
+                            </th>
+
+                            <th>
+                                Record
+                            </th>
+
+                            <th>
+                                Actor
+                            </th>
+
+                            <th>
+                                Batch
+                            </th>
+
+                            <th>
+                                Event Hash
+                            </th>
+
+                            <th>
+                                Previous Hash
+                            </th>
+
+                            <th>
+                                Time
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody>
+
+                        {% if events %}
+
+                            {% for event in events %}
+
+                                <tr>
+
+                                    <td class="event-id-cell">
+                                        #{{ event.event_id }}
+                                    </td>
+
+
+                                    <td>
+
+                                        <span class="operation-badge">
+                                            {{ event.operation }}
+                                        </span>
+
+                                    </td>
+
+
+                                    <td>
+                                        {{ event.table_name }}
+                                    </td>
+
+
+                                    <td>
+                                        #{{ event.record_key }}
+                                    </td>
+
+
+                                    <td>
+                                        {{ event.actor }}
+                                    </td>
+
+
+                                    <td>
+
+                                        {% if event.batch_id %}
+
+                                            <span class="batch-badge">
+                                                {{ event.batch_id }}
+                                            </span>
+
+                                        {% else %}
+
+                                            <span class="pending-batch">
+                                                Pending
+                                            </span>
+
+                                        {% endif %}
+
+                                    </td>
+
+
+                                    <td>
+
+                                        {% if event.event_hash %}
+
+                                            <code
+                                                class="hash-value"
+                                                title="{{ event.event_hash }}"
+                                            >
+                                                {{ event.event_hash[:10] }}...{{ event.event_hash[-6:] }}
+                                            </code>
+
+                                        {% else %}
+
+                                            —
+
+                                        {% endif %}
+
+                                    </td>
+
+
+                                    <td>
+
+                                        {% if event.previous_hash %}
+
+                                            <code
+                                                class="hash-value"
+                                                title="{{ event.previous_hash }}"
+                                            >
+                                                {{ event.previous_hash[:10] }}...{{ event.previous_hash[-6:] }}
+                                            </code>
+
+                                        {% else %}
+
+                                            <span class="genesis-label">
+                                                GENESIS
+                                            </span>
+
+                                        {% endif %}
+
+                                    </td>
+
+
+                                    <td>
+
+                                        {{ event.created_at.strftime("%H:%M:%S") }}
+
+                                    </td>
+
+                                </tr>
+
+                            {% endfor %}
+
+
+                        {% else %}
+
+                            <tr>
+
+                                <td
+                                    colspan="9"
+                                    class="empty-row"
+                                >
+                                    No audit events have been recorded yet.
+                                </td>
+
+                            </tr>
+
+                        {% endif %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </section>
+
+
+        <footer class="dashboard-footer">
+
+            <span>
+                CodeForge
+            </span>
+
+            <span class="footer-dot">
+                •
+            </span>
+
+            <span>
+                Cryptographically Authenticated Audit History
+            </span>
+
+        </footer>
+
+
+    </main>
+
+</body>
+</html>

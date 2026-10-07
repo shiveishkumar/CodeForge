@@ -194,3 +194,95 @@ def verify_system_integrity():
         "status": "VERIFIED",
         "message": "All cryptographic audit checks passed."
     }
+
+def get_integrity_breakdown():
+    result = verify_system_integrity()
+
+    events = get_all_audit_events()
+    batches = get_all_merkle_batches()
+
+    checks = {
+        "hash_chain": {
+            "name": "Hash Chain",
+            "description": f"{len(events)} audit events linked correctly",
+            "status": "passed"
+        },
+
+        "merkle": {
+            "name": "Merkle Integrity",
+            "description": f"{len(batches)} completed batches verified",
+            "status": "passed"
+        },
+
+        "checkpoint": {
+            "name": "External Checkpoint",
+            "description": "Latest trusted root matches",
+            "status": "passed"
+        },
+
+        "business_state": {
+            "name": "Database State",
+            "description": "Current records match authenticated history",
+            "status": "passed"
+        }
+    }
+
+    if result["valid"]:
+        return {
+            "valid": True,
+            "checks": checks,
+            "failure_message": None
+        }
+
+    failure_type = result.get("type")
+
+    # Hash/event failure
+    if failure_type in ("EVENT_HASH", "HASH_CHAIN"):
+
+        checks["hash_chain"]["status"] = "failed"
+        checks["hash_chain"]["description"] = result.get(
+            "message",
+            "Hash-chain verification failed"
+        )
+
+        checks["merkle"]["status"] = "not_checked"
+        checks["checkpoint"]["status"] = "not_checked"
+        checks["business_state"]["status"] = "not_checked"
+
+    # Merkle or root-chain failure
+    elif failure_type in ("MERKLE_ROOT", "ROOT_CHAIN"):
+
+        checks["merkle"]["status"] = "failed"
+        checks["merkle"]["description"] = result.get(
+            "message",
+            "Merkle verification failed"
+        )
+
+        checks["checkpoint"]["status"] = "not_checked"
+        checks["business_state"]["status"] = "not_checked"
+
+    # Checkpoint failure
+    elif failure_type == "CHECKPOINT":
+
+        checks["checkpoint"]["status"] = "failed"
+        checks["checkpoint"]["description"] = result.get(
+            "message",
+            "Checkpoint verification failed"
+        )
+
+        checks["business_state"]["status"] = "not_checked"
+
+    # Live database mismatch
+    elif failure_type == "BUSINESS_STATE":
+
+        checks["business_state"]["status"] = "failed"
+        checks["business_state"]["description"] = result.get(
+            "message",
+            "Business-state mismatch detected"
+        )
+
+    return {
+        "valid": False,
+        "checks": checks,
+        "failure_message": result.get("message")
+    }

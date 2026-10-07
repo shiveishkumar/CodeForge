@@ -760,6 +760,208 @@ def get_product_by_id(product_id):
     finally:
         conn.close()
 
+def get_dashboard_security_data():
+    conn = get_connection()
+
+    try:
+        with conn.cursor() as cur:
+
+            # ---------------------------------
+            # BASIC COUNTS
+            # ---------------------------------
+
+            cur.execute(
+                "SELECT COUNT(*) FROM audit_events;"
+            )
+            audit_count = cur.fetchone()[0]
+
+
+            cur.execute(
+                "SELECT COUNT(*) FROM merkle_batches;"
+            )
+            batch_count = cur.fetchone()[0]
+
+
+            # ---------------------------------
+            # LATEST CHAINED ROOT
+            # ---------------------------------
+
+            cur.execute(
+                """
+                SELECT chained_root_hash
+                FROM merkle_batches
+                ORDER BY batch_id DESC
+                LIMIT 1;
+                """
+            )
+
+            row = cur.fetchone()
+
+            latest_root = (
+                row[0].strip()
+                if row
+                else None
+            )
+
+
+            # ---------------------------------
+            # # AUTHENTICATED AUDIT TRAIL GROWTH
+            # # ---------------------------------
+
+            cur.execute(
+                """
+                SELECT
+                event_id,
+                created_at,
+                ROW_NUMBER() OVER (
+                ORDER BY created_at, event_id
+                ) AS cumulative_count
+                FROM audit_events
+                ORDER BY created_at, event_id;
+                """
+                )
+            activity_rows = cur.fetchall()
+            audit_timeline = [
+                {
+                    "label": row[1].strftime("%H:%M"),
+                    "timestamp": row[1].isoformat(),
+                    "count": row[2]
+                    }
+                    for row in activity_rows
+                    ]
+
+
+            # ---------------------------------
+            # REAL BANKING ACTIVITY
+            # ---------------------------------
+
+            cur.execute(
+                """
+                SELECT
+                    transaction_type,
+                    COUNT(*)
+                FROM transactions
+                GROUP BY transaction_type;
+                """
+            )
+
+            transaction_rows = cur.fetchall()
+
+
+            activity_counts = {
+                row[0]: row[1]
+                for row in transaction_rows
+            }
+
+
+            # ---------------------------------
+            # REAL INVENTORY ACTIVITY
+            # ---------------------------------
+
+            cur.execute(
+                """
+                SELECT COUNT(*)
+                FROM audit_events
+                WHERE table_name = 'inventory';
+                """
+            )
+
+            inventory_count = cur.fetchone()[0]
+
+
+            if inventory_count > 0:
+                activity_counts["INVENTORY"] = inventory_count
+
+
+            # ---------------------------------
+            # RECENT AUDIT ACTIVITY
+            # ---------------------------------
+
+            cur.execute(
+                """
+                SELECT
+                    event_id,
+                    operation,
+                    table_name,
+                    record_key,
+                    created_at,
+                    batch_id
+                FROM audit_events
+                ORDER BY event_id DESC
+                LIMIT 6;
+                """
+            )
+
+            recent_activity = cur.fetchall()
+
+
+        return {
+            "audit_count": audit_count,
+            "batch_count": batch_count,
+            "latest_root": latest_root,
+            "audit_timeline": audit_timeline,
+            "activity_counts": activity_counts,
+            "recent_activity": recent_activity
+        }
+
+    finally:
+        conn.close()
+
+def get_audit_history():
+    conn = get_connection()
+
+    try:
+        with conn.cursor() as cur:
+
+            cur.execute(
+                """
+                SELECT
+                    event_id,
+                    operation,
+                    table_name,
+                    record_key,
+                    actor,
+                    created_at,
+                    previous_hash,
+                    event_hash,
+                    batch_id
+                FROM audit_events
+                ORDER BY event_id DESC;
+                """
+            )
+
+            rows = cur.fetchall()
+
+            events = []
+
+            for row in rows:
+
+                events.append({
+                    "event_id": row[0],
+                    "operation": row[1],
+                    "table_name": row[2],
+                    "record_key": row[3],
+                    "actor": row[4],
+                    "created_at": row[5],
+
+                    "previous_hash":
+                        row[6].strip()
+                        if row[6]
+                        else None,
+
+                    "event_hash":
+                        row[7].strip()
+                        if row[7]
+                        else None,
+
+                    "batch_id": row[8]
+                })
+
+            return events
+
+    finally:
+        conn.close()
+
 if __name__ == "__main__":
     try:
         accounts = get_accounts()
