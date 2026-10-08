@@ -16,23 +16,25 @@
 
 
     <script>
-    const savedTheme =
-        localStorage.getItem("codeforge-theme") || "dark";
+        const savedTheme =
+            localStorage.getItem("codeforge-theme") || "dark";
 
-    document.documentElement.setAttribute(
-        "data-theme",
-        savedTheme
-    );
-</script>
-<link
-    rel="stylesheet"
-    href="{{ url_for('static', filename='css/style.css') }}"
->
+        document.documentElement.setAttribute(
+            "data-theme",
+            savedTheme
+        );
+    </script>
 
-<link
-    rel="stylesheet"
-    href="{{ url_for('static', filename='css/dashboard.css') }}"
->
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/style.css') }}"
+    >
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/dashboard.css') }}"
+    >
 
 </head>
 
@@ -363,9 +365,9 @@
 
             <!-- AUDIT EVENTS -->
 
-            <a 
-            href="{{ url_for('audit_history') }}"
-            class="metric-card glass"
+            <a
+                href="{{ url_for('audit_history') }}"
+                class="metric-card glass"
             >
 
                 <div class="metric-top">
@@ -524,26 +526,55 @@
                             </div>
 
 
+                            <div class="verification-actions">
 
-                            {% if check.status == "passed" %}
 
-                                <div class="check-status passed-text">
-                                    Passed
-                                </div>
+                                {% if check.status == "passed" %}
 
-                            {% elif check.status == "failed" %}
+                                    <div class="check-status passed-text">
+                                        Passed
+                                    </div>
 
-                                <div class="check-status failed-text">
-                                    Failed
-                                </div>
+                                {% elif check.status == "failed" %}
 
-                            {% else %}
+                                    <div class="check-status failed-text">
+                                        Failed
+                                    </div>
 
-                                <div class="check-status pending-text">
-                                    Not checked
-                                </div>
+                                {% else %}
 
-                            {% endif %}
+                                    <div class="check-status pending-text">
+                                        Not checked
+                                    </div>
+
+                                {% endif %}
+
+
+                                {% if
+                                    key == "business_state"
+                                    and check.status == "failed"
+                                    and integrity_breakdown.restore_supported
+                                %}
+
+                                    <form
+                                        method="POST"
+                                        action="{{ url_for('restore_trusted_state') }}"
+                                        class="restore-form"
+                                    >
+
+                                        <button
+                                            type="submit"
+                                            class="restore-button"
+                                        >
+                                            Restore Trusted State
+                                        </button>
+
+                                    </form>
+
+                                {% endif %}
+
+
+                            </div>
 
 
                         </div>
@@ -874,6 +905,8 @@
             <div class="quick-grid">
 
 
+                <!-- BANKING -->
+
                 <a
                     href="{{ url_for('accounts') }}"
                     class="quick-card glass"
@@ -900,6 +933,8 @@
                 </a>
 
 
+
+                <!-- INVENTORY -->
 
                 <a
                     href="{{ url_for('inventory') }}"
@@ -928,6 +963,8 @@
 
 
 
+                <!-- TRANSACTIONS -->
+
                 <a
                     href="{{ url_for('transactions') }}"
                     class="quick-card glass"
@@ -953,6 +990,8 @@
                 </a>
 
 
+
+                <!-- VERIFY INTEGRITY -->
 
                 <form
                     method="POST"
@@ -985,6 +1024,43 @@
                     </button>
 
                 </form>
+
+
+
+                <!-- INITIALIZE TRUSTED BASELINE -->
+
+                <form
+                    method="POST"
+                    action="{{ url_for('initialize_baseline') }}"
+                    class="quick-form"
+                >
+
+                    <button
+                        type="submit"
+                        class="quick-card glass quick-button-card"
+                    >
+
+                        <div class="quick-icon">
+                            ⛨
+                        </div>
+
+
+                        <div>
+
+                            <div class="quick-title">
+                                Initialize Baseline
+                            </div>
+
+                            <div class="quick-description">
+                                Authenticate all existing business records
+                            </div>
+
+                        </div>
+
+                    </button>
+
+                </form>
+
 
             </div>
 

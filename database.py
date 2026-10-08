@@ -859,12 +859,13 @@ def get_dashboard_security_data():
             # ---------------------------------
 
             cur.execute(
-                """
-                SELECT COUNT(*)
-                FROM audit_events
-                WHERE table_name = 'inventory';
-                """
-            )
+    """
+    SELECT COUNT(*)
+    FROM audit_events
+    WHERE table_name = 'inventory'
+    AND operation <> 'BASELINE';
+    """
+)
 
             inventory_count = cur.fetchone()[0]
 
@@ -958,6 +959,291 @@ def get_audit_history():
                 })
 
             return events
+
+    finally:
+        conn.close()
+
+def restore_business_record(table_name, record_key, trusted_data):
+    """
+    Restore a business record using the last authenticated
+    state stored in the audit history.
+
+    Only approved business tables and fields can be restored.
+    """
+
+    if not trusted_data:
+        return False
+
+    conn = get_connection()
+
+    try:
+        with conn.cursor() as cur:
+
+            # =============================================
+            # ACCOUNTS
+            # =============================================
+
+            if table_name == "accounts":
+
+                fields = []
+                values = []
+
+                if "account_name" in trusted_data:
+                    fields.append("account_name = %s")
+                    values.append(
+                        trusted_data["account_name"]
+                    )
+
+                if "balance" in trusted_data:
+                    fields.append("balance = %s")
+                    values.append(
+                        trusted_data["balance"]
+                    )
+
+                if not fields:
+                    return False
+
+                values.append(int(record_key))
+
+                cur.execute(
+                    f"""
+                    UPDATE accounts
+                    SET {", ".join(fields)}
+                    WHERE account_id = %s;
+                    """,
+                    values
+                )
+
+
+            # =============================================
+            # INVENTORY
+            # =============================================
+
+            elif table_name == "inventory":
+
+                fields = []
+                values = []
+
+                if "product_name" in trusted_data:
+                    fields.append("product_name = %s")
+                    values.append(
+                        trusted_data["product_name"]
+                    )
+
+                if "quantity" in trusted_data:
+                    fields.append("quantity = %s")
+                    values.append(
+                        trusted_data["quantity"]
+                    )
+
+                if "price" in trusted_data:
+                    fields.append("price = %s")
+                    values.append(
+                        trusted_data["price"]
+                    )
+
+                if not fields:
+                    return False
+
+                values.append(int(record_key))
+
+                cur.execute(
+                    f"""
+                    UPDATE inventory
+                    SET {", ".join(fields)}
+                    WHERE product_id = %s;
+                    """,
+                    values
+                )
+
+
+            # =============================================
+            # UNKNOWN TABLE
+            # =============================================
+
+            else:
+                return False
+
+
+        conn.commit()
+
+        return True
+
+
+    except Exception:
+        conn.rollback()
+        raise
+
+
+    finally:
+        conn.close()
+
+def get_records_missing_audit_baseline():
+    """
+    Return existing Accounts and Inventory records that do not
+    yet have any authenticated audit history.
+
+    Existing audited records are skipped.
+    """
+
+    conn = get_connection()
+
+    try:
+        with conn.cursor() as cur:
+
+            missing_records = []
+
+
+            # =============================================
+            # ACCOUNTS WITHOUT AUDIT HISTORY
+            # =============================================
+
+            cur.execute(
+                """
+                SELECT
+                    a.account_id,
+                    a.account_name,
+                    a.balance
+                FROM accounts a
+                WHERE NOT EXISTS (
+                    SELECT 1
+                    FROM audit_events ae
+                    WHERE ae.table_name = 'accounts'
+                    AND ae.record_key = a.account_id::text
+                )
+                ORDER BY a.account_id;
+                """
+            )
+
+            account_rows = cur.fetchall()
+
+
+            for row in account_rows:
+
+                missing_records.append({
+                    "table_name": "accounts",
+                    "record_key": str(row[0]),
+
+                    "new_data": {
+                        "account_name": row[1],
+                        "balance": str(row[2])
+                    }
+                })
+
+
+            # =============================================
+            # INVENTORY WITHOUT AUDIT HISTORY
+            # =============================================
+
+            cur.execute(
+                """
+                SELECT
+                    i.product_id,
+                    i.product_name,
+                    i.quantity,
+                    i.price
+                FROM inventory i
+                WHERE NOT EXISTS (
+                    SELECT 1
+                    FROM audit_events ae
+                    WHERE ae.table_name = 'inventory'
+                    AND ae.record_key = i.product_id::text
+                )
+                ORDER BY i.product_id;
+                """
+            )
+
+            inventory_rows = cur.fetchall()
+
+
+            for row in inventory_rows:
+
+                missing_records.append({
+                    "table_name": "inventory",
+                    "record_key": str(row[0]),
+
+                    "new_data": {
+                        "product_name": row[1],
+                        "quantity": row[2],
+                        "price": str(row[3])
+                    }
+                })
+
+
+            return missing_records
+
+
+    finally:
+        conn.close()
+
+def get_all_current_business_records():
+    conn = get_connection()
+
+    try:
+        with conn.cursor() as cur:
+
+            current_records = {}
+
+
+            # =============================================
+            # ACCOUNTS
+            # =============================================
+
+            cur.execute(
+                """
+                SELECT
+                    account_id,
+                    account_name,
+                    balance
+                FROM accounts;
+                """
+            )
+
+            account_rows = cur.fetchall()
+
+
+            for row in account_rows:
+
+                current_records[
+                    ("accounts", str(row[0]))
+                ] = {
+                    "account_id": row[0],
+                    "account_name": row[1],
+                    "balance": str(row[2])
+                }
+
+
+            # =============================================
+            # INVENTORY
+            # =============================================
+
+            cur.execute(
+                """
+                SELECT
+                    product_id,
+                    product_name,
+                    quantity,
+                    price
+                FROM inventory;
+                """
+            )
+
+            inventory_rows = cur.fetchall()
+
+
+            for row in inventory_rows:
+
+                current_records[
+                    ("inventory", str(row[0]))
+                ] = {
+                    "product_id": row[0],
+                    "product_name": row[1],
+                    "quantity": row[2],
+                    "price": str(row[3])
+                }
+
+
+            return current_records
 
     finally:
         conn.close()

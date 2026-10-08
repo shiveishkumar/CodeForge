@@ -4,7 +4,8 @@ from datetime import datetime
 from services import (
     create_audit_event,
     verify_system_integrity,
-    get_integrity_breakdown
+    get_integrity_breakdown,
+    initialize_trusted_baseline
 )
 from database import (
     get_accounts,
@@ -20,7 +21,8 @@ from database import (
     get_account_by_id,
     get_product_by_id,
     get_dashboard_security_data,
-    get_audit_history
+    get_audit_history,
+    restore_business_record
 )
 
 app = Flask(__name__)
@@ -422,6 +424,209 @@ def audit_history():
     return render_template(
         "audit_history.html",
         events=events
+    )
+
+@app.route("/restore-trusted-state", methods=["POST"])
+def restore_trusted_state():
+
+    # Re-run verification first.
+    # Never trust values sent from the browser.
+    result = verify_system_integrity()
+
+
+    # Only BUSINESS_STATE problems can be restored.
+    if (
+        result.get("valid")
+        or result.get("type") != "BUSINESS_STATE"
+    ):
+
+        flash(
+            "Automatic restoration is not available for this issue.",
+            "error"
+        )
+
+        return redirect(
+            url_for("home")
+        )
+
+
+    recoverable_violations = result.get(
+        "recoverable_violations",
+        []
+    )
+
+
+    if not recoverable_violations:
+
+        flash(
+            "No recoverable business-state violations were found.",
+            "error"
+        )
+
+        return redirect(
+            url_for("home")
+        )
+
+
+    try:
+
+        # =================================================
+        # REMOVE DUPLICATE RECORDS
+        # =================================================
+        #
+        # Example:
+        #
+        # accounts #2 balance changed
+        # accounts #2 account_name changed
+        #
+        # That is 2 field violations but only 1 record.
+        # We restore the whole trusted record once.
+        # =================================================
+
+        records_to_restore = {}
+
+
+        for violation in recoverable_violations:
+
+            table_name = violation.get(
+                "table_name"
+            )
+
+            record_key = violation.get(
+                "record_key"
+            )
+
+            trusted_data = violation.get(
+                "trusted_data"
+            )
+
+
+            if (
+                table_name
+                and record_key
+                and trusted_data
+            ):
+
+                key = (
+                    table_name,
+                    str(record_key)
+                )
+
+                records_to_restore[key] = (
+                    trusted_data
+                )
+
+
+        # =================================================
+        # RESTORE ALL TAMPERED RECORDS
+        # =================================================
+
+        restored_count = 0
+
+
+        for (
+            table_name,
+            record_key
+        ), trusted_data in records_to_restore.items():
+
+            restored = restore_business_record(
+                table_name,
+                record_key,
+                trusted_data
+            )
+
+
+            if restored:
+                restored_count += 1
+
+
+        # =================================================
+        # VERIFY AGAIN AFTER ALL RESTORATIONS
+        # =================================================
+
+        verification = verify_system_integrity()
+
+
+        if verification.get("valid"):
+
+            flash(
+                f"{restored_count} trusted record"
+                f"{'s' if restored_count != 1 else ''} "
+                f"restored successfully.",
+                "success"
+            )
+
+        else:
+
+            remaining = verification.get(
+                "violation_count",
+                0
+            )
+
+            flash(
+                f"{restored_count} record"
+                f"{'s' if restored_count != 1 else ''} restored, "
+                f"but {remaining} integrity issue"
+                f"{'s remain' if remaining != 1 else ' remains'}.",
+                "error"
+            )
+
+
+    except Exception as error:
+
+        print(
+            "Restore All Trusted States error:",
+            error
+        )
+
+        flash(
+            "An error occurred while restoring trusted states.",
+            "error"
+        )
+
+
+    return redirect(
+        url_for("home")
+    )
+
+@app.route("/initialize-baseline", methods=["POST"])
+def initialize_baseline():
+
+    try:
+
+        result = initialize_trusted_baseline()
+
+        created = result["created"]
+
+        if created > 0:
+
+            flash(
+                f"Trusted baseline initialized for "
+                f"{created} previously unaudited records.",
+                "success"
+            )
+
+        else:
+
+            flash(
+                "All business records already have trusted audit history.",
+                "success"
+            )
+
+    except Exception as error:
+
+        print(
+            "Baseline initialization error:",
+            error
+        )
+
+        flash(
+            "Could not initialize the trusted baseline.",
+            "error"
+        )
+
+    return redirect(
+        url_for("home")
     )
 
 if __name__ == "__main__":
