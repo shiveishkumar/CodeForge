@@ -1516,3 +1516,41 @@ a {
     background:
         rgba(79, 209, 139, 0.17);
 }
+/* =========================================================
+   DASHBOARD FLASH MESSAGES
+========================================================= */
+
+.dashboard-messages {
+    display: grid;
+    gap: 8px;
+
+    margin-bottom: 16px;
+}
+
+.dashboard-messages .message {
+    padding: 11px 14px;
+
+    border-radius: 10px;
+
+    font-size: 9px;
+    font-weight: 600;
+
+    border: 1px solid var(--border);
+}
+
+.dashboard-messages .success {
+    background: var(--green-soft);
+    color: var(--green);
+
+    border-color:
+        rgba(79, 209, 139, 0.25);
+}
+
+.dashboard-messages .error,
+.dashboard-messages .danger {
+    background: var(--red-soft);
+    color: var(--red);
+
+    border-color:
+        rgba(255, 102, 102, 0.25);
+}

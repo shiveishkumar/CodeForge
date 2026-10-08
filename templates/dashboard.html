@@ -130,6 +130,26 @@
 
     <main class="dashboard-container">
 
+        {% with messages = get_flashed_messages(with_categories=true) %}
+
+    {% if messages %}
+
+        <div class="dashboard-messages">
+
+            {% for category, message in messages %}
+
+                <div class="message {{ category }}">
+                    {{ message }}
+                </div>
+
+            {% endfor %}
+
+        </div>
+
+    {% endif %}
+
+{% endwith %}
+
 
         <!-- =================================================
              PAGE HEADER
