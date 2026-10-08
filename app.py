@@ -22,7 +22,8 @@ from database import (
     get_product_by_id,
     get_dashboard_security_data,
     get_audit_history,
-    restore_business_record
+    restore_business_record,
+    get_connection
 )
 
 app = Flask(__name__)
@@ -628,6 +629,40 @@ def initialize_baseline():
     return redirect(
         url_for("home")
     )
+
+@app.route("/demo/vulnerable-update", methods=["GET", "POST"])
+def vulnerable_update():
+
+    if request.method == "POST":
+
+        account_id = request.form["account_id"]
+        balance = request.form["balance"]
+
+        conn = get_connection()
+
+        try:
+            with conn.cursor() as cur:
+
+                # INTENTIONALLY UNSAFE
+                # ONLY FOR PROJECT DEMONSTRATION
+                query = f"""
+                    UPDATE accounts
+                    SET balance = {balance}
+                    WHERE account_id = {account_id};
+                """
+
+                print("Executing vulnerable query:")
+                print(query)
+
+                cur.execute(query)
+                conn.commit()
+
+        finally:
+            conn.close()
+
+        return "Legacy database update completed."
+
+    return render_template("vulnerable_demo.html")
 
 if __name__ == "__main__":
     app.run(debug=True)
