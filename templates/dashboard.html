@@ -49,6 +49,8 @@
             color: inherit;
             font: inherit;
             cursor: pointer;
+            transition: border-color 0.2s ease,
+                        background 0.2s ease;
         }
 
         .logout-button:hover {
@@ -694,7 +696,7 @@
                     </div>
                 </a>
 
-                <!-- DATABASE REPORTS - NEW -->
+                <!-- DATABASE REPORTS -->
 
                 <a
                     href="{{ url_for('reports') }}"
@@ -711,6 +713,32 @@
                         </div>
                     </div>
                 </a>
+
+                <!-- FINALIZE PENDING BATCHES -->
+
+                <form
+                    method="POST"
+                    action="{{ url_for('finalize_pending_batches') }}"
+                    class="quick-form"
+                    onsubmit="return confirm('Finalize pending audit events into Merkle batches?');"
+                >
+                    <button
+                        type="submit"
+                        class="quick-card glass quick-button-card"
+                    >
+                        <div class="quick-icon">✓</div>
+
+                        <div>
+                            <div class="quick-title">
+                                Finalize Pending Batches
+                            </div>
+
+                            <div class="quick-description">
+                                Complete pending audit events into Merkle batches
+                            </div>
+                        </div>
+                    </button>
+                </form>
 
                 <!-- VERIFY INTEGRITY -->
 

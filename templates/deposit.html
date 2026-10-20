@@ -36,6 +36,16 @@
 
 <main class="container">
 
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            <div class="message {{ category }}">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
+
+
     <div class="heading">
         <h1>Deposit Money</h1>
         <p>Perform a legitimate deposit through the CodeForge application.</p>

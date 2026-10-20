@@ -1,3 +1,4 @@
+
 import os
 from flask import (
     Flask, render_template, request, redirect,
@@ -5,7 +6,7 @@ from flask import (
 )
 from functools import wraps
 from werkzeug.security import check_password_hash
-from models import User 
+from models import User
 from decimal import Decimal, InvalidOperation
 from datetime import datetime
 from extensions import db
@@ -13,7 +14,8 @@ from services import (
     create_audit_event,
     verify_system_integrity,
     get_integrity_breakdown,
-    initialize_trusted_baseline
+    initialize_trusted_baseline,
+    finalize_pending_merkle_batches
 )
 from reports import (
     account_type_summary,
@@ -82,6 +84,7 @@ def require_login():
     admin_only = {
         "restore_trusted_state",
         "initialize_baseline",
+        "finalize_pending_batches",
     }
 
     if (
@@ -123,6 +126,7 @@ def logout():
     flash("You have been logged out.", "success")
     return redirect(url_for("login"))
 
+
 @app.after_request
 def prevent_sensitive_page_caching(response):
     response.headers["Cache-Control"] = (
@@ -131,6 +135,7 @@ def prevent_sensitive_page_caching(response):
     response.headers["Pragma"] = "no-cache"
     response.headers["Expires"] = "0"
     return response
+
 
 @app.route("/")
 def home():
@@ -147,23 +152,18 @@ def home():
 
     return render_template(
         "dashboard.html",
-
         account_count=len(accounts),
         product_count=len(products),
         transaction_count=transaction_count,
-
         integrity_result=integrity_result,
         integrity_breakdown=integrity_breakdown,
         checked_at=checked_at,
-
         audit_count=security_data["audit_count"],
         batch_count=security_data["batch_count"],
         latest_root=security_data["latest_root"],
-
         activity_counts=security_data["activity_counts"],
         recent_activity=security_data["recent_activity"]
     )
-
 
 
 @app.route("/accounts")
@@ -188,8 +188,6 @@ def accounts():
         "accounts.html",
         accounts=accounts
     )
-
-
 
 
 @app.route("/deposit", methods=["GET", "POST"])
@@ -220,13 +218,9 @@ def deposit():
                 operation="UPDATE",
                 table_name="accounts",
                 record_key=account_id,
-                old_data={
-                    "balance": str(old_balance)
-                },
-                new_data={
-                    "balance": str(new_balance)
-                },
-                actor="demo_user"
+                old_data={"balance": str(old_balance)},
+                new_data={"balance": str(new_balance)},
+                actor=g.current_user.username
             )
 
             flash("Deposit completed successfully.", "success")
@@ -274,13 +268,9 @@ def withdraw():
                 operation="UPDATE",
                 table_name="accounts",
                 record_key=account_id,
-                old_data={
-                    "balance": str(old_balance)
-                },
-                new_data={
-                    "balance": str(new_balance)
-                },
-                actor="demo_user"
+                old_data={"balance": str(old_balance)},
+                new_data={"balance": str(new_balance)},
+                actor=g.current_user.username
             )
 
             flash("Withdrawal completed successfully.", "success")
@@ -342,47 +332,30 @@ def transfer():
             new_sender_balance = new_sender[2]
             new_receiver_balance = new_receiver[2]
 
-            # Audit sender balance change
             create_audit_event(
                 operation="UPDATE",
                 table_name="accounts",
                 record_key=from_account,
-                old_data={
-                    "balance": str(old_sender_balance)
-                },
-                new_data={
-                    "balance": str(new_sender_balance)
-                },
-                actor="demo_user"
+                old_data={"balance": str(old_sender_balance)},
+                new_data={"balance": str(new_sender_balance)},
+                actor=g.current_user.username
             )
 
-            # Audit receiver balance change
             create_audit_event(
                 operation="UPDATE",
                 table_name="accounts",
                 record_key=to_account,
-                old_data={
-                    "balance": str(old_receiver_balance)
-                },
-                new_data={
-                    "balance": str(new_receiver_balance)
-                },
-                actor="demo_user"
+                old_data={"balance": str(old_receiver_balance)},
+                new_data={"balance": str(new_receiver_balance)},
+                actor=g.current_user.username
             )
 
-            flash(
-                "Transfer completed successfully.",
-                "success"
-            )
-
+            flash("Transfer completed successfully.", "success")
             return redirect(url_for("accounts"))
 
         except (ValueError, InvalidOperation) as e:
             if isinstance(e, InvalidOperation):
-                flash(
-                    "Please enter a valid amount.",
-                    "error"
-                )
+                flash("Please enter a valid amount.", "error")
             else:
                 flash(str(e), "error")
 
@@ -394,7 +367,6 @@ def transfer():
     )
 
 
-
 @app.route("/inventory")
 def inventory():
     from models import Product
@@ -403,7 +375,6 @@ def inventory():
         Product.product_id
     ).all()
 
-    # Preserve the tuple format used by inventory.html.
     products = [
         (
             product.product_id,
@@ -464,7 +435,7 @@ def edit_product():
                     "quantity": new_product[2],
                     "price": str(new_product[3])
                 },
-                actor="demo_user"
+                actor=g.current_user.username
             )
 
             flash("Product updated successfully.", "success")
@@ -484,7 +455,6 @@ def edit_product():
     )
 
 
-
 @app.route("/transactions")
 def transactions():
     from models import Transaction
@@ -493,7 +463,6 @@ def transactions():
         Transaction.transaction_id.desc()
     ).all()
 
-    # Preserve the tuple format expected by the template.
     transaction_list = [
         (
             transaction.transaction_id,
@@ -510,7 +479,6 @@ def transactions():
         "transactions.html",
         transactions=transaction_list
     )
-
 
 
 @app.route("/inventory/add", methods=["GET", "POST"])
@@ -614,9 +582,9 @@ def delete_inventory_product():
 def verify_now():
     return redirect(url_for("home"))
 
+
 @app.route("/audit-history")
 def audit_history():
-
     events = get_audit_history()
 
     return render_template(
@@ -624,103 +592,58 @@ def audit_history():
         events=events
     )
 
+
 @app.route("/restore-trusted-state", methods=["POST"])
 def restore_trusted_state():
-
     # Re-run verification first.
     # Never trust values sent from the browser.
     result = verify_system_integrity()
-
 
     # Only BUSINESS_STATE problems can be restored.
     if (
         result.get("valid")
         or result.get("type") != "BUSINESS_STATE"
     ):
-
         flash(
             "Automatic restoration is not available for this issue.",
             "error"
         )
-
-        return redirect(
-            url_for("home")
-        )
-
+        return redirect(url_for("home"))
 
     recoverable_violations = result.get(
         "recoverable_violations",
         []
     )
 
-
     if not recoverable_violations:
-
         flash(
             "No recoverable business-state violations were found.",
             "error"
         )
-
-        return redirect(
-            url_for("home")
-        )
-
+        return redirect(url_for("home"))
 
     try:
-
-        # =================================================
-        # REMOVE DUPLICATE RECORDS
-        # =================================================
-        #
-        # Example:
-        #
-        # accounts #2 balance changed
-        # accounts #2 account_name changed
-        #
-        # That is 2 field violations but only 1 record.
-        # We restore the whole trusted record once.
-        # =================================================
-
+        # Remove duplicate records from the restoration list.
         records_to_restore = {}
 
-
         for violation in recoverable_violations:
-
-            table_name = violation.get(
-                "table_name"
-            )
-
-            record_key = violation.get(
-                "record_key"
-            )
-
-            trusted_data = violation.get(
-                "trusted_data"
-            )
-
+            table_name = violation.get("table_name")
+            record_key = violation.get("record_key")
+            trusted_data = violation.get("trusted_data")
 
             if (
                 table_name
                 and record_key
                 and trusted_data
             ):
-
                 key = (
                     table_name,
                     str(record_key)
                 )
+                records_to_restore[key] = trusted_data
 
-                records_to_restore[key] = (
-                    trusted_data
-                )
-
-
-        # =================================================
-        # RESTORE ALL TAMPERED RECORDS
-        # =================================================
-
+        # Restore all tampered records.
         restored_count = 0
-
 
         for (
             table_name,
@@ -733,29 +656,20 @@ def restore_trusted_state():
                 trusted_data
             )
 
-
             if restored:
                 restored_count += 1
 
-
-        # =================================================
-        # VERIFY AGAIN AFTER ALL RESTORATIONS
-        # =================================================
-
+        # Verify again after all restorations.
         verification = verify_system_integrity()
 
-
         if verification.get("valid"):
-
             flash(
                 f"{restored_count} trusted record"
                 f"{'s' if restored_count != 1 else ''} "
-                f"restored successfully.",
+                "restored successfully.",
                 "success"
             )
-
         else:
-
             remaining = verification.get(
                 "violation_count",
                 0
@@ -769,63 +683,88 @@ def restore_trusted_state():
                 "error"
             )
 
-
-    except Exception as error:
-
-        print(
-            "Restore All Trusted States error:",
-            error
-        )
+    except Exception:
+        app.logger.exception("Restore All Trusted States error")
 
         flash(
             "An error occurred while restoring trusted states.",
             "error"
         )
 
+    return redirect(url_for("home"))
 
-    return redirect(
-        url_for("home")
-    )
 
 @app.route("/initialize-baseline", methods=["POST"])
 def initialize_baseline():
-
     try:
-
         result = initialize_trusted_baseline()
-
         created = result["created"]
 
         if created > 0:
-
             flash(
                 f"Trusted baseline initialized for "
                 f"{created} previously unaudited records.",
                 "success"
             )
-
         else:
-
             flash(
                 "All business records already have trusted audit history.",
                 "success"
             )
 
-    except Exception as error:
-
-        print(
-            "Baseline initialization error:",
-            error
-        )
+    except Exception:
+        app.logger.exception("Baseline initialization error")
 
         flash(
             "Could not initialize the trusted baseline.",
             "error"
         )
 
-    return redirect(
-        url_for("home")
-    )
+    return redirect(url_for("home"))
+
+
+@app.route("/finalize-pending-batches", methods=["POST"])
+def finalize_pending_batches():
+    try:
+        batch_ids = finalize_pending_merkle_batches()
+
+        if not batch_ids:
+            flash(
+                "There are no pending events to finalize.",
+                "info"
+            )
+            return redirect(url_for("home"))
+
+        result = verify_system_integrity()
+
+        if result.get("valid"):
+            flash(
+                f"Successfully finalized {len(batch_ids)} "
+                "Merkle batch(es). Integrity verified.",
+                "success"
+            )
+        else:
+            app.logger.error(
+                "Integrity verification failed after batch finalization: %s",
+                result
+            )
+            flash(
+                "Batch finalization completed, but integrity "
+                "verification failed. Check the server logs.",
+                "error"
+            )
+
+    except Exception:
+        app.logger.exception("Pending batch finalization failed")
+
+        flash(
+            "Could not finalize pending batches. "
+            "Check the server logs.",
+            "error"
+        )
+
+    return redirect(url_for("home"))
+
 
 @app.route("/reports")
 def reports():
@@ -839,11 +778,10 @@ def reports():
         transactions=transaction_summary()
     )
 
+
 @app.route("/demo/vulnerable-update", methods=["GET", "POST"])
 def vulnerable_update():
-
     if request.method == "POST":
-
         account_id = request.form["account_id"]
         balance = request.form["balance"]
 
@@ -851,7 +789,6 @@ def vulnerable_update():
 
         try:
             with conn.cursor() as cur:
-
                 # INTENTIONALLY UNSAFE
                 # ONLY FOR PROJECT DEMONSTRATION
                 query = f"""
@@ -872,6 +809,7 @@ def vulnerable_update():
         return "Legacy database update completed."
 
     return render_template("vulnerable_demo.html")
+
 
 if __name__ == "__main__":
     app.run(debug=True)

@@ -1554,3 +1554,68 @@ a {
     border-color:
         rgba(255, 102, 102, 0.25);
 }
+
+
+/* Fix: Finalize Pending Batches card */
+.quick-grid > form.quick-form {
+    display: flex !important;
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    align-self: stretch;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+.quick-grid > form.quick-form > button.quick-card.quick-button-card {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 18px;
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 132px;
+    margin: 0 !important;
+    padding: 24px !important;
+    box-sizing: border-box;
+    border: 1px solid #29313d !important;
+    border-radius: 24px !important;
+    background: #151b24 !important;
+    color: #f1f5f9 !important;
+    font-family: inherit !important;
+    font-size: inherit !important;
+    font-weight: inherit !important;
+    text-align: left !important;
+    box-shadow: none !important;
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    cursor: pointer;
+}
+
+.quick-grid > form.quick-form > button.quick-card.quick-button-card:hover {
+    background: #192230 !important;
+    border-color: #345078 !important;
+}
+
+.quick-grid > form.quick-form > button.quick-card.quick-button-card .quick-icon {
+    flex: 0 0 52px;
+    width: 52px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 16px;
+    background: #1e2b3b !important;
+    color: #60a5fa !important;
+}
+
+.quick-grid > form.quick-form > button.quick-card.quick-button-card .quick-title {
+    color: #f1f5f9 !important;
+}
+
+.quick-grid > form.quick-form > button.quick-card.quick-button-card .quick-description {
+    color: #94a3b8 !important;
+}
