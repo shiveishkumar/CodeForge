@@ -1,4 +1,11 @@
-
+from sqlalchemy import (
+    Numeric,
+    DateTime,
+    String,
+    Integer,
+    BigInteger
+)
+from sqlalchemy.dialects.postgresql import JSONB
 from extensions import db
 from sqlalchemy import Numeric, DateTime, String, Integer
 
@@ -78,3 +85,45 @@ class Transaction(db.Model):
     created_at = db.Column(
         DateTime
     )
+
+
+class AuditEvent(db.Model):
+    __tablename__ = "audit_events"
+
+    event_id = db.Column(
+        BigInteger,
+        primary_key=True
+    )
+
+    operation = db.Column(String(20))
+    table_name = db.Column(String(100))
+    record_key = db.Column(String(100))
+
+    old_data = db.Column(JSONB)
+    new_data = db.Column(JSONB)
+
+    actor = db.Column(String(100))
+    created_at = db.Column(DateTime)
+
+    previous_hash = db.Column(String(64))
+    event_hash = db.Column(String(64))
+    batch_id = db.Column(Integer)
+
+
+class MerkleBatch(db.Model):
+    __tablename__ = "merkle_batches"
+
+    batch_id = db.Column(
+        Integer,
+        primary_key=True
+    )
+
+    start_event_id = db.Column(BigInteger)
+    end_event_id = db.Column(BigInteger)
+    leaf_count = db.Column(Integer)
+
+    merkle_root = db.Column(String(64))
+    previous_root_hash = db.Column(String(64))
+    chained_root_hash = db.Column(String(64))
+
+    created_at = db.Column(DateTime)
