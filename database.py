@@ -296,6 +296,7 @@ def get_transactions():
     conn.close()
     return transactions
 
+
 def add_product(product_name, quantity, price):
     conn = get_connection()
 
@@ -304,13 +305,17 @@ def add_product(product_name, quantity, price):
             cur.execute(
                 """
                 INSERT INTO inventory
-                (product_name, quantity, price)
-                VALUES (%s, %s, %s);
+                    (product_name, quantity, price)
+                VALUES (%s, %s, %s)
+                RETURNING product_id;
                 """,
                 (product_name, quantity, price)
             )
 
+            product_id = cur.fetchone()[0]
+
         conn.commit()
+        return product_id
 
     except Exception:
         conn.rollback()
@@ -318,6 +323,7 @@ def add_product(product_name, quantity, price):
 
     finally:
         conn.close()
+
 
 def delete_product(product_id):
     conn = get_connection()

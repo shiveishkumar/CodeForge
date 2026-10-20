@@ -15,6 +15,11 @@ from services import (
     get_integrity_breakdown,
     initialize_trusted_baseline
 )
+from reports import (
+    account_type_summary,
+    inventory_category_summary,
+    transaction_summary
+)
 from database import (
     get_accounts,
     get_inventory,
@@ -507,6 +512,7 @@ def transactions():
     )
 
 
+
 @app.route("/inventory/add", methods=["GET", "POST"])
 def add_inventory_product():
     if request.method == "POST":
@@ -524,9 +530,29 @@ def add_inventory_product():
             if price < 0:
                 raise ValueError("Price cannot be negative.")
 
-            add_product(product_name, quantity, price)
+            product_id = add_product(
+                product_name,
+                quantity,
+                price
+            )
 
-            flash("Product added successfully.", "success")
+            create_audit_event(
+                operation="INSERT",
+                table_name="inventory",
+                record_key=product_id,
+                old_data=None,
+                new_data={
+                    "product_name": product_name,
+                    "quantity": quantity,
+                    "price": str(price)
+                },
+                actor=g.current_user.username
+            )
+
+            flash(
+                "Product added and audit event recorded.",
+                "success"
+            )
             return redirect(url_for("inventory"))
 
         except (ValueError, InvalidOperation) as e:
@@ -539,6 +565,7 @@ def add_inventory_product():
 
     return render_template("add_product.html")
 
+
 @app.route("/inventory/delete", methods=["GET", "POST"])
 def delete_inventory_product():
     products = get_inventory()
@@ -547,9 +574,30 @@ def delete_inventory_product():
         try:
             product_id = int(request.form["product_id"])
 
+            old_product = get_product_by_id(product_id)
+
+            if old_product is None:
+                raise ValueError("Product not found.")
+
             delete_product(product_id)
 
-            flash("Product deleted successfully.", "success")
+            create_audit_event(
+                operation="DELETE",
+                table_name="inventory",
+                record_key=product_id,
+                old_data={
+                    "product_name": old_product[1],
+                    "quantity": old_product[2],
+                    "price": str(old_product[3])
+                },
+                new_data=None,
+                actor=g.current_user.username
+            )
+
+            flash(
+                "Product deleted and audit event recorded.",
+                "success"
+            )
             return redirect(url_for("inventory"))
 
         except ValueError as e:
@@ -560,6 +608,7 @@ def delete_inventory_product():
         "delete_product.html",
         products=products
     )
+
 
 @app.route("/verify-now", methods=["POST"])
 def verify_now():
@@ -776,6 +825,18 @@ def initialize_baseline():
 
     return redirect(
         url_for("home")
+    )
+
+@app.route("/reports")
+def reports():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    return render_template(
+        "reports.html",
+        accounts=account_type_summary(),
+        inventory=inventory_category_summary(),
+        transactions=transaction_summary()
     )
 
 @app.route("/demo/vulnerable-update", methods=["GET", "POST"])
