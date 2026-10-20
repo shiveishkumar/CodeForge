@@ -1,6 +1,8 @@
+import os
 from flask import Flask, render_template, request, redirect, url_for, flash
 from decimal import Decimal, InvalidOperation
 from datetime import datetime
+from extensions import db
 from services import (
     create_audit_event,
     verify_system_integrity,
@@ -27,7 +29,24 @@ from database import (
 )
 
 app = Flask(__name__)
-app.secret_key = "codeforge-demo-key"
+
+app.config["SECRET_KEY"] = os.getenv(
+    "FLASK_SECRET_KEY",
+    "codeforge-demo-key"
+)
+
+app.config["SQLALCHEMY_DATABASE_URI"] = (
+    f"postgresql+psycopg://"
+    f"{os.getenv('DB_USER')}:"
+    f"{os.getenv('DB_PASSWORD')}@"
+    f"{os.getenv('DB_HOST')}:"
+    f"{os.getenv('DB_PORT')}/"
+    f"{os.getenv('DB_NAME')}"
+)
+
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
+db.init_app(app)
 
 
 @app.route("/")
@@ -63,14 +82,30 @@ def home():
     )
 
 
+
 @app.route("/accounts")
 def accounts():
-    accounts = get_accounts()
+    from models import Account
+
+    account_records = Account.query.order_by(
+        Account.account_id
+    ).all()
+
+    # Preserve the tuple format expected by accounts.html.
+    accounts = [
+        (
+            account.account_id,
+            account.account_name,
+            account.balance
+        )
+        for account in account_records
+    ]
 
     return render_template(
         "accounts.html",
         accounts=accounts
     )
+
 
 
 
@@ -276,9 +311,25 @@ def transfer():
     )
 
 
+
 @app.route("/inventory")
 def inventory():
-    products = get_inventory()
+    from models import Product
+
+    product_records = Product.query.order_by(
+        Product.product_id
+    ).all()
+
+    # Preserve the tuple format used by inventory.html.
+    products = [
+        (
+            product.product_id,
+            product.product_name,
+            product.quantity,
+            product.price
+        )
+        for product in product_records
+    ]
 
     return render_template(
         "inventory.html",
@@ -350,14 +401,33 @@ def edit_product():
     )
 
 
+
 @app.route("/transactions")
 def transactions():
-    transaction_list = get_transactions()
+    from models import Transaction
+
+    transaction_records = Transaction.query.order_by(
+        Transaction.transaction_id.desc()
+    ).all()
+
+    # Preserve the tuple format expected by the template.
+    transaction_list = [
+        (
+            transaction.transaction_id,
+            transaction.from_account,
+            transaction.to_account,
+            transaction.amount,
+            transaction.transaction_type,
+            transaction.created_at
+        )
+        for transaction in transaction_records
+    ]
 
     return render_template(
         "transactions.html",
         transactions=transaction_list
     )
+
 
 @app.route("/inventory/add", methods=["GET", "POST"])
 def add_inventory_product():
