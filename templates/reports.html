@@ -1,0 +1,74 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CodeForge Reports</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #0b1018;
+            color: #eef2f7;
+            padding: 30px;
+        }
+        h1 { color: #60a5fa; }
+        h2 { margin-top: 30px; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 25px;
+            background: #151c27;
+        }
+        th, td {
+            padding: 12px;
+            border: 1px solid #344154;
+            text-align: left;
+        }
+        th { background: #1e293b; }
+        a { color: #60a5fa; }
+    </style>
+</head>
+<body>
+    <h1>CodeForge Database Reports</h1>
+    <p>ORM joins and aggregate query results</p>
+    <a href="{{ url_for('home') }}">Back to Dashboard</a>
+
+    <h2>Account Summary</h2>
+    <table>
+        <tr><th>Account Type</th><th>Accounts</th><th>Total Balance</th></tr>
+        {% for row in accounts %}
+        <tr>
+            <td>{{ row[0] }}</td>
+            <td>{{ row[1] }}</td>
+            <td>{{ "%.2f"|format(row[2]) }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    <h2>Inventory Summary</h2>
+    <table>
+        <tr><th>Category</th><th>Products</th><th>Stock Value</th></tr>
+        {% for row in inventory %}
+        <tr>
+            <td>{{ row[0] }}</td>
+            <td>{{ row[1] }}</td>
+            <td>{{ "%.2f"|format(row[2]) }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    <h2>Transaction Summary</h2>
+    <table>
+        <tr><th>Transaction Type</th><th>Count</th><th>Total Amount</th></tr>
+        {% for row in transactions %}
+        <tr>
+            <td>{{ row[0] }}</td>
+            <td>{{ row[1] }}</td>
+            <td>{{ "%.2f"|format(row[2]) }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>
+
