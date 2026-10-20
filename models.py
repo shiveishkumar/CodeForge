@@ -1,3 +1,5 @@
+from datetime import datetime
+from datetime import datetime
 from sqlalchemy import (
     Numeric,
     DateTime,
@@ -127,3 +129,37 @@ class MerkleBatch(db.Model):
     chained_root_hash = db.Column(String(64))
 
     created_at = db.Column(DateTime)
+
+
+
+
+class User(db.Model):
+    __tablename__ = "users"
+
+    user_id = db.Column(
+        Integer,
+        primary_key=True
+    )
+
+    username = db.Column(
+        String(80),
+        unique=True,
+        nullable=False
+    )
+
+    password_hash = db.Column(
+        String(255),
+        nullable=False
+    )
+
+    role = db.Column(
+        String(20),
+        nullable=False,
+        default="staff"
+    )
+
+    created_at = db.Column(
+        DateTime,
+        nullable=False,
+        default=datetime.utcnow
+    )

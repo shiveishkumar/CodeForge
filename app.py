@@ -1,5 +1,11 @@
 import os
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import (
+    Flask, render_template, request, redirect,
+    url_for, flash, session, g, abort, make_response
+)
+from functools import wraps
+from werkzeug.security import check_password_hash
+from models import User 
 from decimal import Decimal, InvalidOperation
 from datetime import datetime
 from extensions import db
@@ -30,9 +36,8 @@ from database import (
 
 app = Flask(__name__)
 
-app.config["SECRET_KEY"] = os.getenv(
-    "FLASK_SECRET_KEY",
-    "codeforge-demo-key"
+app.config["SECRET_KEY"] = (
+    os.getenv("FLASK_SECRET_KEY") or os.urandom(32)
 )
 
 app.config["SQLALCHEMY_DATABASE_URI"] = (
@@ -48,6 +53,79 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db.init_app(app)
 
+
+@app.before_request
+def require_login():
+    # Public endpoints
+    if request.endpoint in ("login", "static", None):
+        return None
+
+    # Require an authenticated session
+    user_id = session.get("user_id")
+
+    if not user_id:
+        return redirect(url_for("login"))
+
+    user = db.session.get(User, user_id)
+
+    if user is None:
+        session.clear()
+        return redirect(url_for("login"))
+
+    g.current_user = user
+
+    admin_only = {
+        "restore_trusted_state",
+        "initialize_baseline",
+    }
+
+    if (
+        request.endpoint in admin_only
+        and user.role != "admin"
+    ):
+        abort(403)
+
+    return None
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        username = request.form.get("username", "").strip()
+        password = request.form.get("password", "")
+
+        user = User.query.filter_by(
+            username=username
+        ).first()
+
+        if user and check_password_hash(
+            user.password_hash, password
+        ):
+            session.clear()
+            session["user_id"] = user.user_id
+
+            flash("Login successful.", "success")
+            return redirect(url_for("home"))
+
+        flash("Invalid username or password.", "error")
+
+    return render_template("login.html")
+
+
+@app.route("/logout", methods=["POST"])
+def logout():
+    session.clear()
+    flash("You have been logged out.", "success")
+    return redirect(url_for("login"))
+
+@app.after_request
+def prevent_sensitive_page_caching(response):
+    response.headers["Cache-Control"] = (
+        "no-store, no-cache, must-revalidate, private"
+    )
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
 
 @app.route("/")
 def home():

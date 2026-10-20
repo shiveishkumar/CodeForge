@@ -1,19 +1,12 @@
+
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
-
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
-
-    <title>
-        CodeForge Dashboard
-    </title>
-
+    <title>CodeForge Dashboard</title>
 
     <script>
         const savedTheme =
@@ -25,7 +18,6 @@
         );
     </script>
 
-
     <link
         rel="stylesheet"
         href="{{ url_for('static', filename='css/style.css') }}"
@@ -36,48 +28,59 @@
         href="{{ url_for('static', filename='css/dashboard.css') }}"
     >
 
-</head>
+    <style>
+        .user-session {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: var(--text-secondary, #9daec2);
+            font-size: 13px;
+        }
 
+        .user-session form {
+            margin: 0;
+        }
+
+        .logout-button {
+            padding: 8px 12px;
+            border: 1px solid var(--border-color, #394657);
+            border-radius: 8px;
+            background: transparent;
+            color: inherit;
+            font: inherit;
+            cursor: pointer;
+        }
+
+        .logout-button:hover {
+            border-color: #078dcc;
+            background: rgba(7, 141, 204, 0.12);
+        }
+    </style>
+</head>
 
 <body
     class="dashboard-page"
     data-audit-count="{{ audit_count }}"
 >
 
-
-    <!-- =====================================================
-         TOP NAVBAR
-    ====================================================== -->
+    <!-- TOP NAVBAR -->
 
     <nav class="dashboard-nav">
 
         <div class="nav-left">
+            <a href="{{ url_for('home') }}" class="brand">
 
-            <a
-                href="{{ url_for('home') }}"
-                class="brand"
-            >
-
-                <div class="brand-mark">
-                    C
-                </div>
+                <div class="brand-mark">C</div>
 
                 <div>
-
-                    <div class="brand-name">
-                        CodeForge
-                    </div>
-
+                    <div class="brand-name">CodeForge</div>
                     <div class="brand-subtitle">
                         Tamper-Evident Audit Layer
                     </div>
-
                 </div>
 
             </a>
-
         </div>
-
 
         <div class="nav-right">
 
@@ -89,21 +92,14 @@
                     status-danger
                 {% endif %}"
             >
-
                 <span class="status-dot"></span>
 
                 {% if integrity_result.valid %}
-
                     Secure
-
                 {% else %}
-
                     Alert
-
                 {% endif %}
-
             </div>
-
 
             <button
                 id="themeToggle"
@@ -111,77 +107,68 @@
                 type="button"
                 aria-label="Toggle theme"
             >
-
-                <span class="theme-icon">
-                    ◐
-                </span>
-
+                <span class="theme-icon">◐</span>
             </button>
 
-        </div>
+            <!-- ADDED: CURRENT USER AND LOGOUT BUTTON -->
 
+            <div class="user-session">
+                <span>
+                    {{ g.current_user.username }}
+                    <span class="role-label">
+                        ({{ g.current_user.role }})
+                    </span>
+                </span>
+
+                <form
+                    method="POST"
+                    action="{{ url_for('logout') }}"
+                >
+                    <button
+                        type="submit"
+                        class="logout-button"
+                    >
+                        Log Out
+                    </button>
+                </form>
+            </div>
+
+        </div>
     </nav>
 
-
-
-    <!-- =====================================================
-         MAIN
-    ====================================================== -->
+    <!-- MAIN -->
 
     <main class="dashboard-container">
 
         {% with messages = get_flashed_messages(with_categories=true) %}
-
-    {% if messages %}
-
-        <div class="dashboard-messages">
-
-            {% for category, message in messages %}
-
-                <div class="message {{ category }}">
-                    {{ message }}
+            {% if messages %}
+                <div class="dashboard-messages">
+                    {% for category, message in messages %}
+                        <div class="message {{ category }}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
                 </div>
+            {% endif %}
+        {% endwith %}
 
-            {% endfor %}
-
-        </div>
-
-    {% endif %}
-
-{% endwith %}
-
-
-        <!-- =================================================
-             PAGE HEADER
-        ================================================== -->
+        <!-- PAGE HEADER -->
 
         <section class="dashboard-heading">
-
             <div>
+                <div class="eyebrow">SYSTEM OVERVIEW</div>
 
-                <div class="eyebrow">
-                    SYSTEM OVERVIEW
-                </div>
-
-                <h1>
-                    Security Dashboard
-                </h1>
+                <h1>Security Dashboard</h1>
 
                 <p>
                     Monitor business activity,
                     authenticated audit events and
                     database integrity.
                 </p>
-
             </div>
-
         </section>
 
-
-
-        <!-- =================================================
-             INTEGRITY HERO
-        ================================================== -->
+        <!-- INTEGRITY HERO -->
 
         <section
             class="integrity-hero
@@ -194,28 +181,16 @@
 
             <div class="integrity-hero-left">
 
-
                 {% if integrity_result.valid %}
-
-                    <div class="integrity-icon">
-                        ✓
-                    </div>
-
+                    <div class="integrity-icon">✓</div>
                 {% else %}
-
-                    <div class="integrity-icon">
-                        !
-                    </div>
-
+                    <div class="integrity-icon">!</div>
                 {% endif %}
 
-
                 <div>
-
                     <div class="integrity-label">
                         SYSTEM INTEGRITY
                     </div>
-
 
                     {% if integrity_result.valid %}
 
@@ -240,40 +215,27 @@
                         </div>
 
                     {% endif %}
-
                 </div>
-
             </div>
-
 
             <div class="integrity-hero-right">
 
                 {% if integrity_result.valid %}
-
                     <div class="integrity-pill">
                         All Checks Passed
                     </div>
-
                 {% else %}
-
                     <div class="integrity-pill danger">
                         {{ integrity_result.type }}
                     </div>
-
                 {% endif %}
 
             </div>
-
         </section>
 
-
-
-        <!-- =================================================
-             METRIC CARDS
-        ================================================== -->
+        <!-- METRIC CARDS -->
 
         <section class="metrics-grid">
-
 
             <!-- ACCOUNTS -->
 
@@ -281,35 +243,20 @@
                 href="{{ url_for('accounts') }}"
                 class="metric-card glass"
             >
-
                 <div class="metric-top">
-
-                    <span class="metric-label">
-                        Accounts
-                    </span>
-
-                    <span class="metric-arrow">
-                        ↗
-                    </span>
-
+                    <span class="metric-label">Accounts</span>
+                    <span class="metric-arrow">↗</span>
                 </div>
-
 
                 <div
                     class="metric-number"
                     data-count="{{ account_count }}"
-                >
-                    0
-                </div>
-
+                >0</div>
 
                 <div class="metric-description">
                     Banking records
                 </div>
-
             </a>
-
-
 
             <!-- PRODUCTS -->
 
@@ -317,35 +264,20 @@
                 href="{{ url_for('inventory') }}"
                 class="metric-card glass"
             >
-
                 <div class="metric-top">
-
-                    <span class="metric-label">
-                        Products
-                    </span>
-
-                    <span class="metric-arrow">
-                        ↗
-                    </span>
-
+                    <span class="metric-label">Products</span>
+                    <span class="metric-arrow">↗</span>
                 </div>
-
 
                 <div
                     class="metric-number"
                     data-count="{{ product_count }}"
-                >
-                    0
-                </div>
-
+                >0</div>
 
                 <div class="metric-description">
                     Inventory records
                 </div>
-
             </a>
-
-
 
             <!-- TRANSACTIONS -->
 
@@ -353,35 +285,20 @@
                 href="{{ url_for('transactions') }}"
                 class="metric-card glass"
             >
-
                 <div class="metric-top">
-
-                    <span class="metric-label">
-                        Transactions
-                    </span>
-
-                    <span class="metric-arrow">
-                        ↗
-                    </span>
-
+                    <span class="metric-label">Transactions</span>
+                    <span class="metric-arrow">↗</span>
                 </div>
-
 
                 <div
                     class="metric-number"
                     data-count="{{ transaction_count }}"
-                >
-                    0
-                </div>
-
+                >0</div>
 
                 <div class="metric-description">
                     Banking operations
                 </div>
-
             </a>
-
-
 
             <!-- AUDIT EVENTS -->
 
@@ -389,88 +306,51 @@
                 href="{{ url_for('audit_history') }}"
                 class="metric-card glass"
             >
-
                 <div class="metric-top">
-
-                    <span class="metric-label">
-                        Audit Events
-                    </span>
-
-                    <span class="metric-icon-small">
-                        ◉
-                    </span>
-
+                    <span class="metric-label">Audit Events</span>
+                    <span class="metric-icon-small">◉</span>
                 </div>
-
 
                 <div
                     class="metric-number"
                     data-count="{{ audit_count }}"
-                >
-                    0
-                </div>
-
+                >0</div>
 
                 <div class="metric-description">
                     Cryptographically linked
                 </div>
-
             </a>
-
-
 
             <!-- MERKLE BATCHES -->
 
             <div class="metric-card glass">
-
                 <div class="metric-top">
-
-                    <span class="metric-label">
-                        Merkle Batches
-                    </span>
-
-                    <span class="metric-icon-small">
-                        ◆
-                    </span>
-
+                    <span class="metric-label">Merkle Batches</span>
+                    <span class="metric-icon-small">◆</span>
                 </div>
-
 
                 <div
                     class="metric-number"
                     data-count="{{ batch_count }}"
-                >
-                    0
-                </div>
-
+                >0</div>
 
                 <div class="metric-description">
                     Sealed audit batches
                 </div>
-
             </div>
 
         </section>
 
-
-
-        <!-- =================================================
-             SECURITY + BUSINESS ACTIVITY
-        ================================================== -->
+        <!-- SECURITY + BUSINESS ACTIVITY -->
 
         <section class="analytics-grid">
 
-
-            <!-- =============================================
-                 SECURITY VERIFICATION PANEL
-            ============================================== -->
+            <!-- SECURITY VERIFICATION PANEL -->
 
             <div class="panel glass verification-panel">
 
                 <div class="verification-header">
-
                     <div>
-
                         <div class="panel-title">
                             Security Verification
                         </div>
@@ -478,61 +358,38 @@
                         <div class="panel-subtitle">
                             Live cryptographic integrity checks
                         </div>
-
                     </div>
-
 
                     <form
                         method="POST"
                         action="{{ url_for('verify_now') }}"
                     >
-
                         <button
                             type="submit"
                             class="verify-button"
                         >
                             Run Check
                         </button>
-
                     </form>
-
                 </div>
 
-
                 <div class="verification-list">
-
 
                     {% for key, check in integrity_breakdown.checks.items() %}
 
                         <div class="verification-row">
 
-
                             <div class="verification-left">
 
-
                                 {% if check.status == "passed" %}
-
-                                    <div class="check-icon passed">
-                                        ✓
-                                    </div>
-
+                                    <div class="check-icon passed">✓</div>
                                 {% elif check.status == "failed" %}
-
-                                    <div class="check-icon failed">
-                                        !
-                                    </div>
-
+                                    <div class="check-icon failed">!</div>
                                 {% else %}
-
-                                    <div class="check-icon pending">
-                                        –
-                                    </div>
-
+                                    <div class="check-icon pending">–</div>
                                 {% endif %}
 
-
                                 <div>
-
                                     <div class="check-name">
                                         {{ check.name }}
                                     </div>
@@ -540,35 +397,25 @@
                                     <div class="check-description">
                                         {{ check.description }}
                                     </div>
-
                                 </div>
 
                             </div>
 
-
                             <div class="verification-actions">
 
-
                                 {% if check.status == "passed" %}
-
                                     <div class="check-status passed-text">
                                         Passed
                                     </div>
-
                                 {% elif check.status == "failed" %}
-
                                     <div class="check-status failed-text">
                                         Failed
                                     </div>
-
                                 {% else %}
-
                                     <div class="check-status pending-text">
                                         Not checked
                                     </div>
-
                                 {% endif %}
-
 
                                 {% if
                                     key == "business_state"
@@ -581,51 +428,34 @@
                                         action="{{ url_for('restore_trusted_state') }}"
                                         class="restore-form"
                                     >
-
                                         <button
                                             type="submit"
                                             class="restore-button"
                                         >
                                             Restore Trusted State
                                         </button>
-
                                     </form>
 
                                 {% endif %}
 
-
                             </div>
-
-
                         </div>
 
                     {% endfor %}
 
-
                 </div>
 
-
                 <div class="verification-footer">
-
                     <span class="verification-pulse"></span>
 
-                    <span>
-                        Last checked
-                    </span>
+                    <span>Last checked</span>
 
-                    <strong>
-                        {{ checked_at }}
-                    </strong>
-
+                    <strong>{{ checked_at }}</strong>
                 </div>
 
             </div>
 
-
-
-            <!-- =============================================
-                 BUSINESS ACTIVITY
-            ============================================== -->
+            <!-- BUSINESS ACTIVITY -->
 
             <div class="panel glass activity-panel">
 
@@ -638,9 +468,7 @@
                     by CodeForge
                 </div>
 
-
                 <div class="donut-layout">
-
 
                     <div class="donut-wrapper">
 
@@ -648,48 +476,31 @@
                             id="operationDonut"
                             class="operation-donut"
                         >
-
                             <div class="donut-center">
-
-                                <strong>
-                                    {{ transaction_count }}
-                                </strong>
-
-                                <span>
-                                    OPERATIONS
-                                </span>
-
+                                <strong>{{ transaction_count }}</strong>
+                                <span>OPERATIONS</span>
                             </div>
-
                         </div>
 
                     </div>
 
-
                     <div
                         id="operationLegend"
                         class="operation-legend"
-                    >
-                    </div>
+                    ></div>
 
                 </div>
 
-
                 <!-- Hidden backend data for JS -->
 
-                <div
-                    id="operationData"
-                    hidden
-                >
+                <div id="operationData" hidden>
 
                     {% for operation, count in activity_counts.items() %}
-
                         <span
                             class="operation-data-item"
                             data-operation="{{ operation }}"
                             data-count="{{ count }}"
                         ></span>
-
                     {% endfor %}
 
                 </div>
@@ -698,18 +509,13 @@
 
         </section>
 
-
-
-        <!-- =================================================
-             LATEST ROOT
-        ================================================== -->
+        <!-- LATEST ROOT -->
 
         <section class="root-card glass">
 
             <div class="root-header">
 
                 <div>
-
                     <div class="panel-title">
                         Latest Chained Root
                     </div>
@@ -717,55 +523,34 @@
                     <div class="panel-subtitle">
                         Current cryptographic checkpoint
                     </div>
-
                 </div>
 
-
                 {% if latest_root %}
-
-                    <div class="root-state">
-                        ACTIVE
-                    </div>
-
+                    <div class="root-state">ACTIVE</div>
                 {% else %}
-
-                    <div class="root-state inactive">
-                        WAITING
-                    </div>
-
+                    <div class="root-state inactive">WAITING</div>
                 {% endif %}
 
             </div>
 
-
             <div class="root-value">
 
                 {% if latest_root %}
-
                     {{ latest_root }}
-
                 {% else %}
-
                     No completed Merkle batch yet.
-
                 {% endif %}
 
             </div>
 
         </section>
 
-
-
-        <!-- =================================================
-             RECENT AUDIT ACTIVITY
-        ================================================== -->
+        <!-- RECENT AUDIT ACTIVITY -->
 
         <section class="recent-section glass">
 
             <div class="recent-header">
-
                 <div>
-
                     <div class="panel-title">
                         Recent Audit Events
                     </div>
@@ -773,157 +558,88 @@
                     <div class="panel-subtitle">
                         Latest authenticated database changes
                     </div>
-
                 </div>
-
             </div>
-
 
             <div class="recent-table-wrapper">
 
                 <table class="recent-table">
 
                     <thead>
-
                         <tr>
-
-                            <th>
-                                Event
-                            </th>
-
-                            <th>
-                                Operation
-                            </th>
-
-                            <th>
-                                Table
-                            </th>
-
-                            <th>
-                                Record
-                            </th>
-
-                            <th>
-                                Batch
-                            </th>
-
-                            <th>
-                                Time
-                            </th>
-
+                            <th>Event</th>
+                            <th>Operation</th>
+                            <th>Table</th>
+                            <th>Record</th>
+                            <th>Batch</th>
+                            <th>Time</th>
                         </tr>
-
                     </thead>
-
 
                     <tbody>
 
-
                         {% if recent_activity %}
 
-
                             {% for event in recent_activity %}
-
                                 <tr>
+                                    <td>#{{ event[0] }}</td>
 
                                     <td>
-                                        #{{ event[0] }}
-                                    </td>
-
-                                    <td>
-
                                         <span class="operation-badge">
                                             {{ event[1] }}
                                         </span>
-
                                     </td>
 
-                                    <td>
-                                        {{ event[2] }}
-                                    </td>
+                                    <td>{{ event[2] }}</td>
+                                    <td>#{{ event[3] }}</td>
 
                                     <td>
-                                        #{{ event[3] }}
-                                    </td>
-
-                                    <td>
-
                                         {% if event[5] %}
-
                                             Batch {{ event[5] }}
-
                                         {% else %}
-
                                             <span class="pending-batch">
                                                 Pending
                                             </span>
-
                                         {% endif %}
-
                                     </td>
 
                                     <td>
                                         {{ event[4].strftime("%H:%M:%S") }}
                                     </td>
-
                                 </tr>
-
                             {% endfor %}
-
 
                         {% else %}
 
-
                             <tr>
-
-                                <td
-                                    colspan="6"
-                                    class="empty-row"
-                                >
+                                <td colspan="6" class="empty-row">
                                     No audit events recorded yet.
                                 </td>
-
                             </tr>
-
 
                         {% endif %}
 
-
                     </tbody>
-
                 </table>
 
             </div>
-
         </section>
 
-
-
-        <!-- =================================================
-             QUICK ACCESS
-        ================================================== -->
+        <!-- QUICK ACCESS -->
 
         <section class="quick-section">
 
             <div class="section-heading">
-
                 <div>
-
-                    <div class="panel-title">
-                        Quick Access
-                    </div>
+                    <div class="panel-title">Quick Access</div>
 
                     <div class="panel-subtitle">
                         Manage protected business modules
                     </div>
-
                 </div>
-
             </div>
 
-
             <div class="quick-grid">
-
 
                 <!-- BANKING -->
 
@@ -931,28 +647,17 @@
                     href="{{ url_for('accounts') }}"
                     class="quick-card glass"
                 >
-
-                    <div class="quick-icon">
-                        ₹
-                    </div>
-
+                    <div class="quick-icon">₹</div>
 
                     <div>
-
-                        <div class="quick-title">
-                            Banking
-                        </div>
+                        <div class="quick-title">Banking</div>
 
                         <div class="quick-description">
                             Accounts, deposits,
                             withdrawals and transfers
                         </div>
-
                     </div>
-
                 </a>
-
-
 
                 <!-- INVENTORY -->
 
@@ -960,28 +665,17 @@
                     href="{{ url_for('inventory') }}"
                     class="quick-card glass"
                 >
-
-                    <div class="quick-icon">
-                        □
-                    </div>
-
+                    <div class="quick-icon">□</div>
 
                     <div>
-
-                        <div class="quick-title">
-                            Inventory
-                        </div>
+                        <div class="quick-title">Inventory</div>
 
                         <div class="quick-description">
                             Products, quantities
                             and protected updates
                         </div>
-
                     </div>
-
                 </a>
-
-
 
                 <!-- TRANSACTIONS -->
 
@@ -989,27 +683,16 @@
                     href="{{ url_for('transactions') }}"
                     class="quick-card glass"
                 >
-
-                    <div class="quick-icon">
-                        ↔
-                    </div>
-
+                    <div class="quick-icon">↔</div>
 
                     <div>
-
-                        <div class="quick-title">
-                            Transactions
-                        </div>
+                        <div class="quick-title">Transactions</div>
 
                         <div class="quick-description">
                             Review banking activity
                         </div>
-
                     </div>
-
                 </a>
-
-
 
                 <!-- VERIFY INTEGRITY -->
 
@@ -1018,19 +701,13 @@
                     action="{{ url_for('verify_now') }}"
                     class="quick-form"
                 >
-
                     <button
                         type="submit"
                         class="quick-card glass quick-button-card"
                     >
-
-                        <div class="quick-icon">
-                            ✓
-                        </div>
-
+                        <div class="quick-icon">✓</div>
 
                         <div>
-
                             <div class="quick-title">
                                 Verify Integrity
                             </div>
@@ -1038,14 +715,9 @@
                             <div class="quick-description">
                                 Run a fresh security check
                             </div>
-
                         </div>
-
                     </button>
-
                 </form>
-
-
 
                 <!-- INITIALIZE TRUSTED BASELINE -->
 
@@ -1054,19 +726,13 @@
                     action="{{ url_for('initialize_baseline') }}"
                     class="quick-form"
                 >
-
                     <button
                         type="submit"
                         class="quick-card glass quick-button-card"
                     >
-
-                        <div class="quick-icon">
-                            ⛨
-                        </div>
-
+                        <div class="quick-icon">⛨</div>
 
                         <div>
-
                             <div class="quick-title">
                                 Initialize Baseline
                             </div>
@@ -1074,53 +740,30 @@
                             <div class="quick-description">
                                 Authenticate all existing business records
                             </div>
-
                         </div>
-
                     </button>
-
                 </form>
 
-
             </div>
-
         </section>
 
-
-
-        <!-- =================================================
-             FOOTER
-        ================================================== -->
+        <!-- FOOTER -->
 
         <footer class="dashboard-footer">
 
-            <span>
-                CodeForge
-            </span>
-
-            <span class="footer-dot">
-                •
-            </span>
-
-            <span>
-                Tamper-Evident Query Auditing Layer
-            </span>
+            <span>CodeForge</span>
+            <span class="footer-dot">•</span>
+            <span>Tamper-Evident Query Auditing Layer</span>
 
         </footer>
 
-
     </main>
 
-
-
-    <!-- =====================================================
-         JAVASCRIPT
-    ====================================================== -->
+    <!-- JAVASCRIPT -->
 
     <script
         src="{{ url_for('static', filename='js/dashboard.js') }}"
     ></script>
 
 </body>
-
 </html>
