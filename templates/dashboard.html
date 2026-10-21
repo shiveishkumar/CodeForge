@@ -57,6 +57,70 @@
             border-color: #078dcc;
             background: rgba(7, 141, 204, 0.12);
         }
+
+        /* QUICK ACCESS: CONSISTENT CARD HEIGHTS */
+
+        .quick-grid {
+            align-items: stretch;
+        }
+
+        .quick-grid > .quick-card,
+        .quick-grid > .quick-form {
+            height: 132px;
+            min-height: 132px;
+            box-sizing: border-box;
+        }
+
+        .quick-grid > .quick-form {
+            display: flex;
+            min-width: 0;
+            margin: 0;
+        }
+
+        .quick-grid .quick-button-card {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            height: 100%;
+            min-height: 132px;
+            box-sizing: border-box;
+            text-align: left;
+            font: inherit;
+        }
+
+        /* SECURITY VERIFICATION HEADER */
+
+        .verification-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .verification-header-actions {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-left: auto;
+            flex-shrink: 0;
+        }
+
+        .verification-header-actions form {
+            margin: 0;
+        }
+
+        @media (max-width: 600px) {
+            .verification-header {
+                align-items: flex-start;
+                flex-wrap: wrap;
+            }
+
+            .verification-header-actions {
+                width: 100%;
+                justify-content: flex-end;
+            }
+        }
     </style>
 </head>
 
@@ -352,6 +416,7 @@
             <div class="panel glass verification-panel">
 
                 <div class="verification-header">
+
                     <div>
                         <div class="panel-title">
                             Security Verification
@@ -362,17 +427,56 @@
                         </div>
                     </div>
 
-                    <form
-                        method="POST"
-                        action="{{ url_for('verify_now') }}"
-                    >
-                        <button
-                            type="submit"
-                            class="verify-button"
+                    <!-- Detect failed checks -->
+
+                    {% set ns = namespace(tampering_detected=false) %}
+
+                    {% for key, check in integrity_breakdown.checks.items() %}
+                        {% if check.status == "failed" %}
+                            {% set ns.tampering_detected = true %}
+                        {% endif %}
+                    {% endfor %}
+
+                    <!-- Header buttons -->
+
+                    <div class="verification-header-actions">
+
+                        <!-- Always visible -->
+
+                        <form
+                            method="POST"
+                            action="{{ url_for('verify_now') }}"
                         >
-                            Run Check
-                        </button>
-                    </form>
+                            <button
+                                type="submit"
+                                class="verify-button"
+                            >
+                                Run Check
+                            </button>
+                        </form>
+
+                        <!-- Visible only when a check has failed -->
+
+                        {% if ns.tampering_detected %}
+
+                            <form
+                                method="POST"
+                                action="{{ url_for('recover_integrity') }}"
+                                class="restore-form"
+                                onsubmit="return confirm('Attempt automatic integrity recovery?');"
+                            >
+                                <button
+                                    type="submit"
+                                    class="restore-button"
+                                >
+                                    Recover Integrity
+                                </button>
+                            </form>
+
+                        {% endif %}
+
+                    </div>
+
                 </div>
 
                 <div class="verification-list">
@@ -406,17 +510,23 @@
                             <div class="verification-actions">
 
                                 {% if check.status == "passed" %}
+
                                     <div class="check-status passed-text">
                                         Passed
                                     </div>
+
                                 {% elif check.status == "failed" %}
+
                                     <div class="check-status failed-text">
                                         Failed
                                     </div>
+
                                 {% else %}
+
                                     <div class="check-status pending-text">
                                         Not checked
                                     </div>
+
                                 {% endif %}
 
                                 {% if

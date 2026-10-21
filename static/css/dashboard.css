@@ -1619,3 +1619,146 @@ a {
 .quick-grid > form.quick-form > button.quick-card.quick-button-card .quick-description {
     color: #94a3b8 !important;
 }
+
+
+.verification-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+}
+
+.verification-header-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+.verification-header-actions form {
+    margin: 0;
+}
+
+@media (max-width: 600px) {
+    .verification-header {
+        align-items: flex-start;
+        flex-wrap: wrap;
+    }
+
+    .verification-header-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+}
+
+/* =========================================================
+   QUICK ACCESS — MATCH ALL CARD SIZES
+========================================================= */
+
+/* Keep all Quick Access cards the same height */
+.quick-grid {
+    align-items: stretch;
+}
+
+.quick-grid > a.quick-card,
+.quick-grid > form.quick-form {
+    height: 132px;
+    min-height: 132px;
+    box-sizing: border-box;
+    margin: 0;
+}
+
+/* Make form wrappers match the normal cards */
+.quick-grid > form.quick-form {
+    display: flex;
+    min-width: 0;
+    padding: 0;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+/* Give button cards exactly the same layout as link cards */
+.quick-grid > form.quick-form > button.quick-card {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 0 !important;
+
+    margin: 0 !important;
+    padding: 16px !important;
+    gap: 13px !important;
+
+    box-sizing: border-box;
+    border: 1px solid var(--border) !important;
+    border-radius: 20px !important;
+
+    background: var(--surface) !important;
+    color: var(--text) !important;
+
+    font: inherit !important;
+    text-align: left !important;
+
+    box-shadow: var(--shadow) !important;
+    cursor: pointer;
+    transition:
+        transform 0.18s ease,
+        border-color 0.18s ease,
+        background 0.18s ease;
+}
+
+/* Match the existing Banking and Inventory icon sizes */
+.quick-grid > form.quick-form > button.quick-card .quick-icon {
+    flex: 0 0 35px !important;
+    width: 35px !important;
+    height: 35px !important;
+
+    display: grid !important;
+    place-items: center !important;
+
+    border-radius: 11px !important;
+    background: var(--blue-soft) !important;
+    color: var(--blue) !important;
+
+    font-size: 13px;
+}
+
+/* Match title and description styling */
+.quick-grid > form.quick-form > button.quick-card .quick-title {
+    color: var(--text) !important;
+    font-size: 10.5px;
+    font-weight: 700;
+}
+
+.quick-grid > form.quick-form > button.quick-card .quick-description {
+    margin-top: 4px;
+    color: var(--muted) !important;
+    font-size: 8.5px;
+    line-height: 1.4;
+}
+
+/* Consistent hover effect for all cards */
+.quick-grid > form.quick-form > button.quick-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(77, 163, 255, 0.26) !important;
+    background: var(--surface-2) !important;
+}
+
+/* Keep the cards usable on smaller screens */
+@media (max-width: 700px) {
+    .quick-grid > a.quick-card,
+    .quick-grid > form.quick-form {
+        height: auto;
+        min-height: 112px;
+    }
+
+    .quick-grid > form.quick-form > button.quick-card {
+        min-height: 112px !important;
+    }
+}
