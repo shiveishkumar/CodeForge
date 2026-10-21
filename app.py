@@ -15,7 +15,8 @@ from services import (
     verify_system_integrity,
     get_integrity_breakdown,
     initialize_trusted_baseline,
-    finalize_pending_merkle_batches
+    finalize_pending_merkle_batches,
+    recover_integrity_from_trusted_evidence
 )
 from reports import (
     account_type_summary,
@@ -809,6 +810,32 @@ def vulnerable_update():
         return "Legacy database update completed."
 
     return render_template("vulnerable_demo.html")
+
+
+@app.route("/recover-integrity", methods=["POST"])
+def recover_integrity():
+    try:
+        result = recover_integrity_from_trusted_evidence()
+
+        if result["valid"]:
+            flash(
+                result["message"],
+                "success"
+            )
+        else:
+            flash(
+                result["message"],
+                "error"
+            )
+
+    except Exception as e:
+        app.logger.exception("Integrity recovery failed")
+        flash(
+            "Recovery failed. Check the application logs.",
+            "error"
+        )
+
+    return redirect(url_for("home"))
 
 
 if __name__ == "__main__":

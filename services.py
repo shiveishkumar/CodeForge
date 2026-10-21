@@ -585,3 +585,185 @@ def get_integrity_breakdown():
         "current": result.get("current"),
         "trusted_data": result.get("trusted_data")
     }
+
+
+def recover_integrity_from_trusted_evidence():
+    """
+    Repair cryptographic metadata only when trusted evidence
+    independently confirms the correct value.
+
+    Does not recover arbitrary altered event data.
+    """
+    from database import get_connection
+
+    events = get_all_audit_events()
+    batches = get_all_merkle_batches()
+
+    repaired = []
+
+    # --------------------------------------------------
+    # 1. Recover event hashes using the next event's
+    #    previous_hash as an independent reference.
+    # --------------------------------------------------
+    for i, event in enumerate(events[:-1]):
+        next_event = events[i + 1]
+
+        payload = {
+            "operation": event["operation"],
+            "table_name": event["table_name"],
+            "record_key": str(event["record_key"]),
+            "old_data": event["old_data"],
+            "new_data": event["new_data"],
+            "actor": event["actor"],
+            "created_at": event["created_at"],
+        }
+
+        candidate = build_event_record(
+            payload,
+            event["previous_hash"] or ""
+        )
+
+        candidate_hash = candidate["event_hash"]
+
+        # Recover only when the next event independently
+        # confirms the calculated hash.
+        if (
+            candidate_hash == next_event["previous_hash"]
+            and candidate_hash != event["event_hash"]
+        ):
+            conn = get_connection()
+            try:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        """
+                        UPDATE audit_events
+                        SET event_hash = %s
+                        WHERE event_id = %s
+                          AND event_hash = %s
+                        """,
+                        (
+                            candidate_hash,
+                            event["event_id"],
+                            event["event_hash"],
+                        ),
+                    )
+
+                    if cur.rowcount != 1:
+                        raise RuntimeError(
+                            "Event changed during recovery."
+                        )
+
+                conn.commit()
+                repaired.append(
+                    f"Event hash: {event['event_id']}"
+                )
+            except Exception:
+                conn.rollback()
+                raise
+            finally:
+                conn.close()
+
+    # Reload events after any repairs.
+    events = get_all_audit_events()
+
+    chain_result = verify_hash_chain(events)
+
+    if not chain_result["valid"]:
+        return {
+            "valid": False,
+            "status": "RECOVERY_INCOMPLETE",
+            "repaired": repaired,
+            "message": (
+                "Hash-chain verification still fails. "
+                "No further automatic repairs were attempted."
+            ),
+        }
+
+    # --------------------------------------------------
+    # 2. Recover a Merkle root only if the existing
+    #    chained root independently confirms it.
+    # --------------------------------------------------
+    conn = get_connection()
+
+    try:
+        with conn.cursor() as cur:
+            for batch in batches:
+                leaves = [
+                    event["event_hash"]
+                    for event in events
+                    if (
+                        batch["start_event_id"]
+                        <= event["event_id"]
+                        <= batch["end_event_id"]
+                    )
+                ]
+
+                if len(leaves) != batch["leaf_count"]:
+                    continue
+
+                calculated_root = build_merkle_root(leaves)
+
+                confirmed_chained_root = calculate_chained_root(
+                    batch["previous_root_hash"] or "",
+                    calculated_root,
+                )
+
+                if (
+                    calculated_root != batch["merkle_root"]
+                    and confirmed_chained_root
+                    == batch["chained_root_hash"]
+                ):
+                    cur.execute(
+                        """
+                        UPDATE merkle_batches
+                        SET merkle_root = %s
+                        WHERE batch_id = %s
+                          AND merkle_root = %s
+                          AND chained_root_hash = %s
+                        """,
+                        (
+                            calculated_root,
+                            batch["batch_id"],
+                            batch["merkle_root"],
+                            batch["chained_root_hash"],
+                        ),
+                    )
+
+                    if cur.rowcount == 1:
+                        repaired.append(
+                            f"Merkle root: {batch['batch_id']}"
+                        )
+
+        conn.commit()
+
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+    # --------------------------------------------------
+    # 3. Verify the complete system again.
+    #    Do not manufacture a new checkpoint to hide
+    #    a checkpoint mismatch.
+    # --------------------------------------------------
+    result = verify_system_integrity()
+
+    return {
+        "valid": result["valid"],
+        "status": (
+            "VERIFIED"
+            if result["valid"]
+            else "RECOVERY_INCOMPLETE"
+        ),
+        "repaired": repaired,
+        "message": (
+            "Recovery completed and all checks passed."
+            if result["valid"]
+            else (
+                "Some issues remain. Inspect the verification "
+                "result before attempting further recovery."
+            )
+        ),
+        "verification": result,
+    }
