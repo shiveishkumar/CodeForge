@@ -1,516 +1,180 @@
-CODEFORGE — CRYPTOGRAPHIC AUDIT LAYER
-Bhavyendra — Team CodeForge
-DBTHON Project
-============================================================
+# CodeForge – Tamper-Evident Query Auditing Layer
+
+## 1. Project Overview
 
-PROJECT
-------------------------------------------------------------
+CodeForge is a database security project that implements a tamper-evident auditing layer for relational database applications.
 
-Project:
-Tamper-Evident Query Auditing Layer Using Merkle-Chained Logs
+The system records database operations, generates cryptographic hashes, organizes audit events into Merkle batches, and maintains chained root checkpoints. It verifies the integrity of audit records and checks whether the current business database state matches the authenticated audit history.
 
-This folder contains the cryptographic integrity layer developed
-by Bhavyendra for the CodeForge DBTHON project.
+The application demonstrates these concepts through banking and inventory management modules.
 
-The layer is responsible for:
+## 2. Project Objectives
 
-- Canonical audit-event representation
-- SHA-256 event hashing
-- Previous-hash chaining
-- Hash-chain verification
-- Merkle-tree construction
-- Merkle roots
-- Merkle inclusion proofs
-- Merkle proof verification
-- Merkle batch root chaining
-- External checkpoint handling
-- Cryptographic integrity verification
-- Tamper diagnostics
+- Maintain a verifiable history of database operations.
+- Detect unauthorized modification or deletion of audit records.
+- Use SHA-256 hashing and hash chaining to protect audit history.
+- Group audit events using Merkle trees.
+- Maintain chained Merkle root checkpoints.
+- Verify current business records against authenticated audit history.
+- Demonstrate authentication and role-based access control.
 
-This implementation is TAMPER-EVIDENT, not tamper-proof.
+## 3. Technology Stack
 
+| Component | Technology |
+|---|---|
+| Programming Language | Python |
+| Backend Framework | Flask |
+| Database | PostgreSQL |
+| Database Integration | SQLAlchemy ORM and SQL |
+| Database Management | pgAdmin |
+| Cryptographic Hashing | SHA-256 |
+| Integrity Structure | Hash Chain and Merkle Tree |
+| Frontend | HTML, CSS, JavaScript |
+| Version Control | Git and GitHub |
 
-============================================================
-FILES
-============================================================
+## 4. Main Application Modules
 
-audit.py
-    Canonical audit-event representation, SHA-256 hashing,
-    event-record construction, and hash-chain verification.
+### Banking
+- Account management
+- Deposits
+- Withdrawals
+- Fund transfers
 
-merkle.py
-    Merkle-tree construction, Merkle roots, inclusion proofs,
-    and inclusion-proof verification.
+### Inventory
+- Add products
+- Update product quantities and prices
+- Delete products
+- Record inventory changes in the audit history
 
-checkpoint.py
-    Chained-root calculation and checkpoint.json
-    save/load operations.
+### Audit and Integrity Verification
+- Record authenticated database changes.
+- Generate cryptographic hashes.
+- Organize events into Merkle batches.
+- Maintain chained root checkpoints.
+- Verify audit history and current database state.
+- Detect tampering and report integrity failures.
 
-verifier.py
-    Complete cryptographic integrity verification.
+### Authentication
+- Admin and Staff login.
+- Session-based authentication.
+- Role-based access restrictions.
 
-test_crypto.py
-    Automated cryptographic and tamper-detection tests.
+## 5. System Architecture
 
+The application follows this general processing flow:
 
-============================================================
-SHARED AUDIT EVENT CONTRACT
-============================================================
+1. A user logs into the application.
+2. The user performs a banking or inventory operation.
+3. The backend processes the business operation.
+4. The corresponding database change is recorded in the audit history.
+5. Audit events are linked using SHA-256 hash chaining.
+6. Events are grouped into Merkle batches.
+7. Merkle roots are chained and stored as checkpoints.
+8. The verification module checks audit integrity and current business data.
 
-The canonical audit-event payload contains exactly these fields:
+## 6. Installation and Setup
 
-    operation
-    table_name
-    record_key
-    old_data
-    new_data
-    actor
-    created_at
+### Prerequisites
 
-Database metadata such as:
+- Python 3.10 or later
+- PostgreSQL
+- pgAdmin (recommended)
+- Git
 
-    event_id
-    previous_hash
-    event_hash
-    batch_id
+### Clone the Repository
 
-is NOT included in the canonical event payload.
+```bash
+git clone https://github.com/shiveishkumar/CodeForge.git
+cd CodeForge
+```
 
-Canonicalization must therefore produce the same canonical
-representation even when database metadata is present.
+### Create a Virtual Environment
 
+```bash
+python -m venv .venv
+```
 
-============================================================
-audit.py
-============================================================
+Activate it on Windows:
 
-PUBLIC FUNCTION:
+```bash
+.venv\Scripts\activate
+```
 
-canonicalize_event(event)
+### Install Dependencies
 
-Purpose:
-    Convert an audit event into a deterministic canonical JSON
-    representation.
+```bash
+pip install -r requirements.txt
+```
 
-Parameters:
-    event
-        Dictionary containing the canonical audit-event fields.
+### Database Configuration
 
-Returns:
-    Deterministic canonical JSON string.
+1. Open PostgreSQL using pgAdmin.
+2. Create the database named `codeforge_db`.
+3. Configure the database connection using the application's environment configuration.
+4. Add the required database credentials and secret values to your local environment file.
+5. Initialize the database using the project's supported setup procedure.
 
-Notes:
-    JSON keys are sorted.
-    JSON separators are deterministic.
-    Nested values are normalized before serialization.
+Do not upload database passwords, secret keys, or `.env` files to GitHub.
 
+## 7. Running the Application
 
-PUBLIC FUNCTION:
+After completing the database configuration and installing the dependencies, run:
 
-calculate_event_hash(event, previous_hash)
+```bash
+python app.py
+```
 
-Purpose:
-    Calculate the SHA-256 hash of the canonical event together
-    with its previous hash.
+Open the application in your browser:
 
-Parameters:
-    event
-        Canonical audit-event dictionary.
+```text
+http://127.0.0.1:5000
+```
 
-    previous_hash
-        SHA-256 hash of the previous audit event.
-        For the first event this is empty/None.
+Use the configured application login credentials to access the dashboard.
 
-Returns:
-    64-character lowercase hexadecimal SHA-256 hash.
+## 8. Repository Structure
 
+The project includes the following major components:
 
-PUBLIC FUNCTION:
+- `app.py` – Flask application and application routes.
+- `services.py` – Business operations and application services.
+- `audit.py` – Audit event processing and cryptographic audit logic.
+- `merkle.py` – Merkle tree and root generation.
+- `verifier.py` – Audit integrity verification.
+- `checkpoint.py` – Checkpoint management.
+- `templates/` – HTML application pages.
+- `static/` – Frontend styles and scripts.
+- `requirements.txt` – Python dependencies.
+- `checkpoint.json` – Latest chained-root checkpoint.
 
-build_event_record(event, previous_hash)
+The actual repository may contain additional modules and supporting files.
 
-Purpose:
-    Construct an audit event record containing the event data,
-    previous_hash, and calculated event_hash.
+## 9. Team Members
 
-Parameters:
-    event
-        Audit-event dictionary.
+| Name | Registration Number |
+|---|---|
+| Shiveish Kumar | 23BDS0285 |
+| Bhavyendra Manish | 23BAI0176 |
 
-    previous_hash
-        Hash of the previous event.
+**Team Name:** CodeForge
 
-Returns:
-    Dictionary containing the audit event plus cryptographic
-    metadata.
+**Institution:** Vellore Institute of Technology (VIT)
 
+**School:** School of Computer Science and Engineering (SCOPE)
 
-PUBLIC FUNCTION:
+## 10. Project Repository
 
-verify_hash_chain(events)
+GitHub: https://github.com/shiveishkumar/CodeForge
 
-Purpose:
-    Verify event hashes and previous-hash continuity.
+## 11. Limitations
 
-Parameters:
-    events
-        Ordered list of audit-event records.
+- The application is currently intended as an academic demonstration.
+- The vulnerable demonstration functionality is intended for local testing only.
+- Integrity verification depends on the availability and protection of audit records and checkpoint information.
+- The project has not been presented as a production-certified banking security system.
 
-Returns:
-    Structured verification result.
+## 12. Conclusion
 
-Successful result:
+CodeForge demonstrates how cryptographic hash chaining, Merkle trees, and checkpoint verification can be integrated with a relational database application to provide tamper-evident query auditing.
 
-    {
-        "valid": True,
-        "type": "HASH_CHAIN",
-        "message": "Hash chain is valid."
-    }
-
-Failure result includes:
-
-    valid
-    type
-    event_id
-    message
-
-Possible failure type:
-
-    EVENT_HASH
-    HASH_CHAIN
-
-
-============================================================
-merkle.py
-============================================================
-
-BATCH SIZE:
-
-    4 events
-
-The project uses fixed batches of four audit events.
-
-
-PUBLIC FUNCTION:
-
-build_merkle_root(event_hashes)
-
-Purpose:
-    Construct a Merkle root from event hashes.
-
-Parameters:
-    event_hashes
-        List of SHA-256 event hashes.
-
-Returns:
-    64-character lowercase hexadecimal Merkle root.
-
-Rules:
-    Parent hash = SHA256(left_hash + right_hash)
-
-    If a level contains an odd number of hashes,
-    the final hash is duplicated.
-
-
-PUBLIC FUNCTION:
-
-build_merkle_proof(event_hashes, index)
-
-Purpose:
-    Build a Merkle inclusion proof for one event hash.
-
-Parameters:
-    event_hashes
-        List of event hashes.
-
-    index
-        Zero-based index of the target event hash.
-
-Returns:
-    List of proof entries containing sibling position
-    and sibling hash.
-
-
-PUBLIC FUNCTION:
-
-verify_merkle_proof(leaf_hash, proof, expected_root)
-
-Purpose:
-    Verify that a leaf hash belongs to a specified Merkle root.
-
-Parameters:
-    leaf_hash
-        Event hash being verified.
-
-    proof
-        Inclusion proof generated by build_merkle_proof().
-
-    expected_root
-        Expected Merkle root.
-
-Returns:
-    True if the proof is valid.
-    False otherwise.
-
-
-============================================================
-checkpoint.py
-============================================================
-
-PUBLIC FUNCTION:
-
-calculate_chained_root(previous_root_hash, merkle_root)
-
-Purpose:
-    Chain consecutive Merkle roots.
-
-Formula:
-
-    SHA256(previous_root_hash + merkle_root)
-
-For the first batch, previous_root_hash is treated as empty.
-
-Parameters:
-    previous_root_hash
-        Chained root of the previous batch.
-
-    merkle_root
-        Current batch Merkle root.
-
-Returns:
-    64-character lowercase hexadecimal chained root.
-
-
-PUBLIC FUNCTION:
-
-save_checkpoint(batch_id, chained_root_hash)
-
-Purpose:
-    Save the latest trusted chained root to checkpoint.json.
-
-Parameters:
-    batch_id
-        ID of the latest verified batch.
-
-    chained_root_hash
-        Latest chained Merkle root.
-
-Creates:
-
-    checkpoint.json
-
-
-PUBLIC FUNCTION:
-
-load_checkpoint()
-
-Purpose:
-    Load the current external checkpoint.
-
-Returns:
-    Checkpoint dictionary if checkpoint.json exists.
-    None if the checkpoint does not exist.
-
-
-CHECKPOINT STRUCTURE:
-
-    {
-        "batch_id": <integer>,
-        "chained_root_hash": "<64-character hash>",
-        "updated_at": "<ISO timestamp>"
-    }
-
-
-============================================================
-verifier.py
-============================================================
-
-PUBLIC FUNCTION:
-
-verify_cryptographic_integrity(events, batches, checkpoint)
-
-Purpose:
-    Perform complete cryptographic verification of the audit
-    history.
-
-Verification order:
-
-    1. Event hashes and previous-hash chain
-    2. Merkle roots
-    3. Root chaining
-    4. External checkpoint
-
-
-Successful result:
-
-    {
-        "valid": True,
-        "status": "VERIFIED",
-        "message": "All cryptographic audit checks passed."
-    }
-
-
-Tampering result:
-
-    {
-        "valid": False,
-        "status": "TAMPERING_DETECTED",
-        ...
-    }
-
-Failure diagnostics may include:
-
-    type
-    event_id
-    batch_id
-    message
-
-Relevant failure types include:
-
-    EVENT_HASH
-    HASH_CHAIN
-    MERKLE_ROOT
-    ROOT_CHAIN
-    CHECKPOINT
-
-
-============================================================
-EXPECTED INTEGRATION FLOW
-============================================================
-
-Shiveish's application performs a legitimate database operation.
-
-Application operation
-        |
-        v
-Audit event created
-        |
-        v
-build_event_record()
-        |
-        v
-SHA-256 event hash
-        |
-        v
-Previous-hash chain
-        |
-        v
-Four-event Merkle batch
-        |
-        v
-build_merkle_root()
-        |
-        v
-calculate_chained_root()
-        |
-        v
-checkpoint.json
-        |
-        v
-verify_cryptographic_integrity()
-        |
-        v
-VERIFIED
-
-
-============================================================
-TAMPERING DEMONSTRATION
-============================================================
-
-An audit record may be directly modified through PostgreSQL/pgAdmin.
-
-Example:
-
-Original:
-
-    new_data = {"balance": "34000.00"}
-
-Tampered:
-
-    new_data = {"balance": "99999.00"}
-
-The stored event_hash remains unchanged.
-
-Verification recalculates the hash from the modified event and
-detects the mismatch.
-
-Expected result:
-
-    {
-        "valid": False,
-        "status": "TAMPERING_DETECTED",
-        "type": "EVENT_HASH",
-        "event_id": 2,
-        "message": "Event hash mismatch at event 2"
-    }
-
-
-Other tested tampering cases:
-
-- Deleted event
-- Changed stored Merkle root
-- Changed checkpoint chained root
-
-
-============================================================
-TEST STATUS
-============================================================
-
-Automated test command:
-
-    python -m unittest test_crypto.py -v
-
-Current result:
-
-    15 tests passed
-    0 failures
-    0 errors
-
-The test suite covers:
-
-- Deterministic canonicalization
-- Metadata exclusion from hashing
-- Changed event changes hash
-- Valid hash chain
-- Event tampering detection
-- Deleted-event detection
-- Merkle root changes when a leaf changes
-- Merkle inclusion proof
-- Invalid Merkle leaf rejection
-- Root chaining
-- Checkpoint save/load
-- Complete VERIFIED result
-- Complete event-tampering detection
-- Changed Merkle root detection
-- Changed checkpoint detection
-
-
-============================================================
-INTEGRATION NOTES FOR SHIVEISH
-============================================================
-
-Import the required public interfaces directly from these modules.
-
-Do not rename the public functions.
-
-Do not change the canonical audit-event fields.
-
-Do not change the Merkle batch size from 4.
-
-Do not replace PostgreSQL with another database.
-
-Do not move cryptographic logic into the Flask application.
-
-The Flask/PostgreSQL application should provide the audit-event
-records and Merkle-batch records to the cryptographic verifier.
-
-The cryptographic layer does not implement the banking system,
-inventory system, Flask application, dashboard, or PostgreSQL
-connection.
-
-Those responsibilities belong to Shiveish's implementation.
-
-
-============================================================
-END OF HANDOFF
-============================================================
+The project combines practical banking and inventory operations with database integrity verification to demonstrate the detection of unauthorized changes.
